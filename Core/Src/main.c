@@ -23,6 +23,11 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+
+#include "adc_angle.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -431,10 +436,20 @@ static void MX_GPIO_Init(void)
 void StateMachine(void *argument)
 {
   /* USER CODE BEGIN 5 */
+  char msg[32];
   /* Infinite loop */
   for(;;)
   {
-    osSemaphoreRelease(LEDBinarySemHandle);
+    // osSemaphoreRelease(LEDBinarySemHandle);
+    // HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+    sprintf(msg, "Angle: %d deg\r\n", (int)current_angle_deg);
+    if (HAL_UART_Transmit(&huart1, (uint8_t*)msg, strlen(msg), 1000) != HAL_OK)
+    {
+      // 发送失败，快速闪烁 LED 告警
+      HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+      osDelay(100);
+      HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+    }
     osDelay(1000);
   }
   /* USER CODE END 5 */
@@ -453,10 +468,8 @@ void StartSensorScan(void *argument)
   /* Infinite loop */
   for(;;)
   {
-   if (osSemaphoreAcquire(LEDBinarySemHandle, osWaitForever) == osOK)
-   {
-    HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
-   }
+    GetCurrentAngle();
+    osDelay(50);   // 每 50ms 扫描一次，人眼和系统都合适
   }
   /* USER CODE END StartSensorScan */
 }
@@ -474,7 +487,7 @@ void StartAILogic(void *argument)
   /* Infinite loop */
   for(;;)
   {
-    osDelay(1);
+  osDelay(1);
   }
   /* USER CODE END StartAILogic */
 }
