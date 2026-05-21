@@ -99,6 +99,13 @@ const osThreadAttr_t Task_UI_attributes = {
   .stack_size = 256 * 4,
   .priority = (osPriority_t) osPriorityBelowNormal1,
 };
+/* Definitions for Task_ReadKEY */
+osThreadId_t Task_ReadKEYHandle;
+const osThreadAttr_t Task_ReadKEY_attributes = {
+  .name = "Task_ReadKEY",
+  .stack_size = 256 * 4,
+  .priority = (osPriority_t) osPriorityBelowNormal1,
+};
 /* Definitions for LEDBinarySem */
 osSemaphoreId_t LEDBinarySemHandle;
 const osSemaphoreAttr_t LEDBinarySem_attributes = {
@@ -119,6 +126,7 @@ void StartSensorScan(void *argument);
 void StartAILogic(void *argument);
 void StartArmControl(void *argument);
 void StartUI(void *argument);
+void StartReadKEY(void *argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -208,6 +216,9 @@ int main(void)
 
   /* creation of Task_UI */
   Task_UIHandle = osThreadNew(StartUI, NULL, &Task_UI_attributes);
+
+  /* creation of Task_ReadKEY */
+  Task_ReadKEYHandle = osThreadNew(StartReadKEY, NULL, &Task_ReadKEY_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -421,9 +432,9 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(LED_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : sensor_1_Pin sensor_2_Pin sensor_3_Pin sensor_4_Pin
-                           sensor_5_Pin sensor_6_Pin sensor_7_Pin KEY_Pin */
+                           sensor_5_Pin sensor_6_Pin sensor_7_Pin */
   GPIO_InitStruct.Pin = sensor_1_Pin|sensor_2_Pin|sensor_3_Pin|sensor_4_Pin
-                          |sensor_5_Pin|sensor_6_Pin|sensor_7_Pin|KEY_Pin;
+                          |sensor_5_Pin|sensor_6_Pin|sensor_7_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
@@ -433,6 +444,12 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(sensor_8_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : KEY_Pin */
+  GPIO_InitStruct.Pin = KEY_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(KEY_GPIO_Port, &GPIO_InitStruct);
 
   /* USER CODE BEGIN MX_GPIO_Init_2 */
 
@@ -553,6 +570,24 @@ void StartUI(void *argument)
     osDelay(200);
   }
   /* USER CODE END StartUI */
+}
+
+/* USER CODE BEGIN Header_StartReadKEY */
+/**
+* @brief Function implementing the Task_ReadKEY thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartReadKEY */
+void StartReadKEY(void *argument)
+{
+  /* USER CODE BEGIN StartReadKEY */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END StartReadKEY */
 }
 
 /**
