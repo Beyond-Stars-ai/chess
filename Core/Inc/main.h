@@ -75,14 +75,8 @@ void Error_Handler(void);
 #define sensor_7_GPIO_Port GPIOA
 #define sensor_8_Pin GPIO_PIN_0
 #define sensor_8_GPIO_Port GPIOB
-#define up_Pin GPIO_PIN_15
-#define up_GPIO_Port GPIOA
-#define right_Pin GPIO_PIN_3
-#define right_GPIO_Port GPIOB
-#define down_Pin GPIO_PIN_4
-#define down_GPIO_Port GPIOB
-#define left_Pin GPIO_PIN_5
-#define left_GPIO_Port GPIOB
+#define KEY_Pin GPIO_PIN_15
+#define KEY_GPIO_Port GPIOA
 
 /* USER CODE BEGIN Private defines */
 

@@ -38,7 +38,18 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+typedef enum {
+    STATE_MAIN_MENU,
+} AppState_t;
 
+AppState_t current_state = STATE_MAIN_MENU;
+
+typedef enum {
+    MAIN_PLACE = 0,
+    MAIN_GAME = 1,
+} MainOption_t;
+
+MainOption_t main_option = MAIN_PLACE;
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -410,18 +421,18 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(LED_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : sensor_1_Pin sensor_2_Pin sensor_3_Pin sensor_4_Pin
-                           sensor_5_Pin sensor_6_Pin sensor_7_Pin up_Pin */
+                           sensor_5_Pin sensor_6_Pin sensor_7_Pin KEY_Pin */
   GPIO_InitStruct.Pin = sensor_1_Pin|sensor_2_Pin|sensor_3_Pin|sensor_4_Pin
-                          |sensor_5_Pin|sensor_6_Pin|sensor_7_Pin|up_Pin;
+                          |sensor_5_Pin|sensor_6_Pin|sensor_7_Pin|KEY_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : sensor_8_Pin right_Pin down_Pin left_Pin */
-  GPIO_InitStruct.Pin = sensor_8_Pin|right_Pin|down_Pin|left_Pin;
+  /*Configure GPIO pin : sensor_8_Pin */
+  GPIO_InitStruct.Pin = sensor_8_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+  HAL_GPIO_Init(sensor_8_GPIO_Port, &GPIO_InitStruct);
 
   /* USER CODE BEGIN MX_GPIO_Init_2 */
 
@@ -493,7 +504,7 @@ void StartAILogic(void *argument)
   /* Infinite loop */
   for(;;)
   {
-  osDelay(1);
+    osDelay(1);
   }
   /* USER CODE END StartAILogic */
 }
@@ -526,10 +537,20 @@ void StartArmControl(void *argument)
 void StartUI(void *argument)
 {
   /* USER CODE BEGIN StartUI */
+  OLED_Clear();
   /* Infinite loop */
   for(;;)
   {
-    osDelay(1);
+    // HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+
+    // 显示主菜单
+    OLED_Clear();
+    OLED_ShowString(0, 0, "=== Chess Robot ===", OLED_8X16);
+    OLED_ShowString(0, 20, main_option == MAIN_PLACE ? "-> Place Chess" : "   Place Chess", OLED_8X16);
+    OLED_ShowString(0, 35, main_option == MAIN_GAME  ? "-> Play Game"   : "   Play Game", OLED_8X16);
+    OLED_Update();
+
+    osDelay(200);
   }
   /* USER CODE END StartUI */
 }
