@@ -15,7 +15,6 @@ extern ADC_HandleTypeDef hadc1;
 extern volatile float current_angle_deg;
 
 /* 函数声明 */
-void ADC_Angle_Init(void);                      // 可选：初始化滤波缓冲区
 uint32_t ReadADC_Filtered(void);                // 读取ADC并返回滤波值
 float ADC_to_Angle(uint32_t adc_raw);           // 原始值转角度
 float GetCurrentAngle(void);                    // 一键获取当前角度

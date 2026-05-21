@@ -28,6 +28,7 @@
 #include <stdlib.h>
 
 #include "adc_angle.h"
+#include "oled.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -150,6 +151,11 @@ int main(void)
   MX_USART1_UART_Init();
   MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
+	OLED_Init();					
+	// OLED_Update();
+
+  OLED_ShowString(0, 0, "Hello World!", OLED_8X16);   // 左上角开始显示
+  OLED_Update();
 
   /* USER CODE END 2 */
 
@@ -469,7 +475,7 @@ void StartSensorScan(void *argument)
   for(;;)
   {
     GetCurrentAngle();
-    osDelay(50);   // 每 50ms 扫描一次，人眼和系统都合适
+    osDelay(50);  
   }
   /* USER CODE END StartSensorScan */
 }

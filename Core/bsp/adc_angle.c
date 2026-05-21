@@ -8,14 +8,6 @@ static uint8_t  adc_index = 0;
 /* 全局变量定义 */
 volatile float current_angle_deg = 0.0f;
 
-void ADC_Angle_Init(void)
-{
-    for (int i = 0; i < ADC_SAMPLE_COUNT; i++)
-        adc_buffer[i] = 0;
-    adc_index = 0;
-    current_angle_deg = 0.0f;
-}
-
 /**
   * @brief  读取 ADC 并返回经过滑动平均滤波的原始值
   * @retval ADC 原始值（0~4095）的平均值
