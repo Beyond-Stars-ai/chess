@@ -21,8 +21,9 @@
 //     HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
 // }
 void Key1_Action(void) {
-    KeyEvent_t event = KEY_UP;
-    osMessageQueuePut(keyEventQueueHandle, &event, 0, 0);
+    // KeyEvent_t event = KEY_UP;
+    // osMessageQueuePut(keyEventQueueHandle, &event, 0, 0);
+    HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
 }
 void Key2_Action(void) {
     KeyEvent_t event = KEY_DOWN;
@@ -33,8 +34,9 @@ void Key3_Action(void) {
     osMessageQueuePut(keyEventQueueHandle, &event, 0, 0);
 }
 void Key4_Action(void) {
-    KeyEvent_t event = KEY_RIGHT;
-    osMessageQueuePut(keyEventQueueHandle, &event, 0, 0);
+    // KeyEvent_t event = KEY_RIGHT;
+    // osMessageQueuePut(keyEventQueueHandle, &event, 0, 0);
+    HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
 }
 void Key5_Action(void) {
     KeyEvent_t event = KEY_CONFIRM;

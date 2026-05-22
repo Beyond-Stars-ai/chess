@@ -210,7 +210,7 @@ int main(void)
 
   /* Create the queue(s) */
   /* creation of keyEventQueue */
-  keyEventQueueHandle = osMessageQueueNew (5, sizeof(KeyEvent_t), &keyEventQueue_attributes);
+  keyEventQueueHandle = osMessageQueueNew (3, sizeof(KeyEvent_t), &keyEventQueue_attributes);
 
   /* USER CODE BEGIN RTOS_QUEUES */
     /* add queues, ... */
