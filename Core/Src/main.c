@@ -176,11 +176,11 @@ int main(void)
   MX_USART1_UART_Init();
   MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
-    OLED_Init();
-    // OLED_Update();
+  OLED_Init();
+  // OLED_Update();
 
-    OLED_ShowString(0, 0, "Hello World!", OLED_8X16); // 左上角开始显示
-    OLED_Update();
+  OLED_ShowString(0, 0, "Hello World!", OLED_8X16); // 左上角开始显示
+  OLED_Update();
 
   /* USER CODE END 2 */
 
