@@ -137,6 +137,13 @@ const osThreadAttr_t Task_ReadKEY_attributes = {
   .stack_size = 256 * 4,
   .priority = (osPriority_t) osPriorityBelowNormal1,
 };
+/* Definitions for DebugTask */
+osThreadId_t DebugTaskHandle;
+const osThreadAttr_t DebugTask_attributes = {
+  .name = "DebugTask",
+  .stack_size = 512 * 4,
+  .priority = (osPriority_t) osPriorityHigh,
+};
 /* Definitions for keyEventQueue */
 osMessageQueueId_t keyEventQueueHandle;
 const osMessageQueueAttr_t keyEventQueue_attributes = {
@@ -173,6 +180,7 @@ void StartAILogic(void *argument);
 void StartArmControl(void *argument);
 void StartUI(void *argument);
 void StartReadKEY(void *argument);
+void StartDebugTask(void *argument);
 
 /* USER CODE BEGIN PFP */
 void DrawGameBoard(void)
@@ -197,7 +205,6 @@ void DrawGameBoard(void)
       else if (chessgame.state == GAME_PLAYER_MOVE && pos == chessgame.cursor_pos)
         OLED_ShowChar(x_start, y_start, '_', OLED_8X16);
       
-      // 去掉最后一个参数 1
       if (col < 2)
       {
         OLED_DrawLine(x_start + 16, y_start, x_start + 16, y_start + 16);
@@ -308,6 +315,9 @@ int main(void)
 
   /* creation of Task_ReadKEY */
   Task_ReadKEYHandle = osThreadNew(StartReadKEY, NULL, &Task_ReadKEY_attributes);
+
+  /* creation of DebugTask */
+  DebugTaskHandle = osThreadNew(StartDebugTask, NULL, &DebugTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
     /* add threads, ... */
@@ -534,17 +544,17 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(sensor_8_GPIO_Port, &GPIO_InitStruct);
 
+  /*Configure GPIO pins : sensor_9_Pin KEY_3_Pin KEY_2_Pin KEY_1_Pin */
+  GPIO_InitStruct.Pin = sensor_9_Pin|KEY_3_Pin|KEY_2_Pin|KEY_1_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
   /*Configure GPIO pins : KEY_5_Pin KEY_4_Pin */
   GPIO_InitStruct.Pin = KEY_5_Pin|KEY_4_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : KEY_3_Pin KEY_2_Pin KEY_1_Pin */
-  GPIO_InitStruct.Pin = KEY_3_Pin|KEY_2_Pin|KEY_1_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_PULLUP;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /* USER CODE BEGIN MX_GPIO_Init_2 */
 
@@ -755,6 +765,7 @@ void StartAILogic(void *argument)
   }
   /* USER CODE END StartAILogic */
 }
+
 /* USER CODE BEGIN Header_StartArmControl */
 /**
  * @brief Function implementing the Task_ArmControl thread.
@@ -783,8 +794,7 @@ void StartArmControl(void *argument)
 void StartUI(void *argument)
 {
   /* USER CODE BEGIN StartUI */
-  OLED_Clear();
-  
+  /* Infinite loop */
   for (;;)
   {
     OLED_Clear();
@@ -800,31 +810,22 @@ void StartUI(void *argument)
       OLED_ShowString(0, 0, "Select First:", OLED_8X16);
       OLED_ShowString(0, 20, chessgame.ai_color == BLACK ? "-> AI First" : "   AI First", OLED_8X16);
       OLED_ShowString(0, 35, chessgame.ai_color == WHITE ? "-> Player First" : "   Player First", OLED_8X16);
-      OLED_ShowString(0, 55, "CONFIRM to start", OLED_8X16);
     }
     else if (chessgame.state == GAME_OVER)
     {
-      char str[20];
-      if (chessgame.game_result == GAME_BLACK_WIN)
-        sprintf(str, "Black Wins!");
-      else if (chessgame.game_result == GAME_WHITE_WIN)
-        sprintf(str, "White Wins!");
-      else
-        sprintf(str, "Draw!");
-      
-      OLED_ShowString(0, 0, "Game Over", OLED_8X16);
-      OLED_ShowString(0, 20, str, OLED_8X16);
-      
-      if ((chessgame.game_result == GAME_BLACK_WIN && chessgame.ai_color == BLACK) ||
-          (chessgame.game_result == GAME_WHITE_WIN && chessgame.ai_color == WHITE))
-      {
-        OLED_ShowString(0, 40, "AI Wins!", OLED_8X16);
-      }
-      // else
-      // {
-      //   OLED_ShowString(0, 40, "You Win!", OLED_8X16);
-      // }
-      OLED_ShowString(0, 45, "CONFIRM to back", OLED_8X16);
+        OLED_ShowString(0, 0, "Game Over", OLED_8X16);
+    
+        if (chessgame.game_result == GAME_DRAW)
+        {
+            OLED_ShowString(0, 20, "Draw!", OLED_8X16);
+        }
+        else if ((chessgame.game_result == GAME_BLACK_WIN && chessgame.ai_color == BLACK) ||
+                 (chessgame.game_result == GAME_WHITE_WIN && chessgame.ai_color == WHITE))
+        {
+            OLED_ShowString(0, 20, "AI Wins!", OLED_8X16);
+        }
+
+        OLED_ShowString(0, 45, "CONFIRM to back", OLED_8X16);
     }
     else
     {
@@ -874,6 +875,48 @@ void StartReadKEY(void *argument)
     osDelay(10);
   }
   /* USER CODE END StartReadKEY */
+}
+
+/* USER CODE BEGIN Header_StartDebugTask */
+/**
+* @brief Function implementing the DebugTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartDebugTask */
+void StartDebugTask(void *argument)
+{
+  /* USER CODE BEGIN StartDebugTask */
+  char debug_buf[128];
+  /* Infinite loop */
+  for(;;)
+  {
+    // 构建要发送的字符串
+    int len = sprintf(debug_buf, "Board:\r\n");
+    HAL_UART_Transmit(&huart1, (uint8_t*)debug_buf, len, 100);
+    
+    for (int row = 0; row < 3; row++)
+    {
+      for (int col = 0; col < 3; col++)
+      {
+        int pos = row * 3 + col;
+        switch (chessgame.board[pos])
+        {
+          case EMPTY: debug_buf[0] = '.'; break;
+          case BLACK: debug_buf[0] = 'X'; break;
+          case WHITE: debug_buf[0] = 'O'; break;
+          default:    debug_buf[0] = '?'; break;
+        }
+        debug_buf[1] = ' ';
+        HAL_UART_Transmit(&huart1, (uint8_t*)debug_buf, 2, 100);
+      }
+      HAL_UART_Transmit(&huart1, (uint8_t*)"\r\n", 2, 100);
+    }
+    HAL_UART_Transmit(&huart1, (uint8_t*)"\r\n", 2, 100);
+    
+    osDelay(3000);
+  }
+  /* USER CODE END StartDebugTask */
 }
 
 /**
