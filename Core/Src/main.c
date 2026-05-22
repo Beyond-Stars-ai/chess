@@ -29,6 +29,7 @@
 
 #include "adc_angle.h"
 #include "oled.h"
+#include "key.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -39,6 +40,7 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 
+//UI(暂时)
 typedef enum
 {
     STATE_MAIN_MENU,
@@ -585,24 +587,31 @@ void StartUI(void *argument)
 void StartReadKEY(void *argument)
 {
   /* USER CODE BEGIN StartReadKEY */
-  uint8_t last_state = 1;
-  uint8_t cur_state;
   /* Infinite loop */
   for (;;)
   {
-    cur_state = (HAL_GPIO_ReadPin(KEY_5_GPIO_Port, KEY_5_Pin) == GPIO_PIN_RESET) ? 0 : 1;
-    if (last_state == 1 && cur_state == 0)
+    for (int i = 0; i < KEY_NUM; i++)
     {
-      osDelay(20);
-      if (HAL_GPIO_ReadPin(KEY_5_GPIO_Port, KEY_5_Pin) == GPIO_PIN_RESET)
+      uint8_t cur = (HAL_GPIO_ReadPin(keys[i].port, keys[i].pin) == GPIO_PIN_RESET) ? 0 : 1;
+      if (keys[i].last_state == 1 && cur == 0 && keys[i].action_done == 0)
       {
-        HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
-        while (HAL_GPIO_ReadPin(KEY_5_GPIO_Port, KEY_5_Pin) == GPIO_PIN_RESET)
-          osDelay(10);
+        osDelay(20);
+        if (HAL_GPIO_ReadPin(keys[i].port, keys[i].pin) == GPIO_PIN_RESET)
+        {
+          if (keys[i].action)
+          {
+            keys[i].action();
+          }
+          keys[i].action_done = 1;
+        }
       }
+      if (cur == 1)
+      {
+        keys[i].action_done = 0;
+      }
+      keys[i].last_state = cur;
     }
-    last_state = cur_state;
-    osDelay(20);
+    osDelay(10);
   }
   /* USER CODE END StartReadKEY */
 }
