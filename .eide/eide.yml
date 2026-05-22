@@ -32,6 +32,7 @@ targets:
         - Drivers/CMSIS/Device/ST/STM32F4xx/Include
         - Drivers/CMSIS/Include
         - Core/bsp
+        - Core/app
       libList: []
     excludeList: []
     toolchain: GCC
