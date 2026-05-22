@@ -112,6 +112,11 @@ const osThreadAttr_t Task_ReadKEY_attributes = {
   .stack_size = 256 * 4,
   .priority = (osPriority_t) osPriorityBelowNormal1,
 };
+/* Definitions for keyEventQueue */
+osMessageQueueId_t keyEventQueueHandle;
+const osMessageQueueAttr_t keyEventQueue_attributes = {
+  .name = "keyEventQueue"
+};
 /* Definitions for LEDBinarySem */
 osSemaphoreId_t LEDBinarySemHandle;
 const osSemaphoreAttr_t LEDBinarySem_attributes = {
@@ -202,6 +207,10 @@ int main(void)
   /* USER CODE BEGIN RTOS_TIMERS */
     /* start timers, add new ones, ... */
   /* USER CODE END RTOS_TIMERS */
+
+  /* Create the queue(s) */
+  /* creation of keyEventQueue */
+  keyEventQueueHandle = osMessageQueueNew (5, sizeof(KeyEvent_t), &keyEventQueue_attributes);
 
   /* USER CODE BEGIN RTOS_QUEUES */
     /* add queues, ... */
@@ -482,15 +491,26 @@ static void MX_GPIO_Init(void)
 void StateMachine(void *argument)
 {
   /* USER CODE BEGIN 5 */
-    // char msg[32];
-    /* Infinite loop */
-    for (;;)
+  KeyEvent_t key_evt;
+  char msg[32];
+  /* Infinite loop */
+  for (;;)
+  {
+    if (osMessageQueueGet(keyEventQueueHandle, &key_evt, NULL, 100) == osOK)
     {
-        // osSemaphoreRelease(LEDBinarySemHandle);
-        // HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
-        // sprintf(msg, "Angle: %d deg\r\n", (int)current_angle_deg);
-        osDelay(1000);
+      switch (key_evt)
+      {
+        case KEY_UP:     sprintf(msg, "KEY_UP\r\n");     break;
+        case KEY_DOWN:   sprintf(msg, "KEY_DOWN\r\n");   break;
+        case KEY_LEFT:   sprintf(msg, "KEY_LEFT\r\n");   break;
+        case KEY_RIGHT:  sprintf(msg, "KEY_RIGHT\r\n");  break;
+        case KEY_CONFIRM:sprintf(msg, "KEY_CONFIRM\r\n");break;
+        default:         sprintf(msg, "KEY_UNKNOWN\r\n");break;
+      }
+      HAL_UART_Transmit(&huart1, (uint8_t*)msg, strlen(msg), 100);
     }
+    osDelay(10);
+  }
   /* USER CODE END 5 */
 }
 
@@ -541,11 +561,11 @@ void StartAILogic(void *argument)
 void StartArmControl(void *argument)
 {
   /* USER CODE BEGIN StartArmControl */
-    /* Infinite loop */
-    for (;;)
-    {
-        osDelay(1);
-    }
+  /* Infinite loop */
+  for (;;)
+  {
+  osDelay(1);
+  }
   /* USER CODE END StartArmControl */
 }
 

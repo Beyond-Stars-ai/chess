@@ -3,6 +3,7 @@
 
 #include "main.h"
 
+#include "cmsis_os.h" 
 /* ---------- 按键数量 ---------- */
 #define KEY_NUM  5
 
@@ -18,8 +19,19 @@ typedef struct {
     KeyAction_t action;      // 按下时回调的动作
 } Key_t;
 
+/* 定义按键事件类型 */
+typedef enum {
+    KEY_UP,
+    KEY_DOWN,
+    KEY_LEFT,
+    KEY_RIGHT,
+    KEY_CONFIRM
+} KeyEvent_t;
+
 /* ---------- 外部声明 ---------- */
 extern Key_t keys[KEY_NUM];
+
+extern osMessageQueueId_t keyEventQueueHandle;
 
 // void Key_Scan(void);
 
