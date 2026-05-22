@@ -70,10 +70,10 @@ I2C_HandleTypeDef hi2c1;
 
 UART_HandleTypeDef huart1;
 
-/* Definitions for Task_StateMachi */
-osThreadId_t Task_StateMachiHandle;
-const osThreadAttr_t Task_StateMachi_attributes = {
-  .name = "Task_StateMachi",
+/* Definitions for Task_State */
+osThreadId_t Task_StateHandle;
+const osThreadAttr_t Task_State_attributes = {
+  .name = "Task_State",
   .stack_size = 256 * 4,
   .priority = (osPriority_t) osPriorityNormal4,
 };
@@ -132,7 +132,7 @@ static void MX_GPIO_Init(void);
 static void MX_I2C1_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_ADC1_Init(void);
-void StateMachine(void *argument);
+void StartState(void *argument);
 void StartSensorScan(void *argument);
 void StartAILogic(void *argument);
 void StartArmControl(void *argument);
@@ -217,8 +217,8 @@ int main(void)
   /* USER CODE END RTOS_QUEUES */
 
   /* Create the thread(s) */
-  /* creation of Task_StateMachi */
-  Task_StateMachiHandle = osThreadNew(StateMachine, NULL, &Task_StateMachi_attributes);
+  /* creation of Task_State */
+  Task_StateHandle = osThreadNew(StartState, NULL, &Task_State_attributes);
 
   /* creation of Task_SensorScan */
   Task_SensorScanHandle = osThreadNew(StartSensorScan, NULL, &Task_SensorScan_attributes);
@@ -481,18 +481,17 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE END 4 */
 
-/* USER CODE BEGIN Header_StateMachine */
+/* USER CODE BEGIN Header_StartState */
 /**
- * @brief  Function implementing the Task_StateMachi thread.
- * @param  argument: Not used
- * @retval None
- */
-/* USER CODE END Header_StateMachine */
-void StateMachine(void *argument)
+  * @brief  Function implementing the Task_State thread.
+  * @param  argument: Not used
+  * @retval None
+  */
+/* USER CODE END Header_StartState */
+void StartState(void *argument)
 {
   /* USER CODE BEGIN 5 */
   KeyEvent_t key_evt;
-  char msg[32];
   /* Infinite loop */
   for (;;)
   {
@@ -500,14 +499,18 @@ void StateMachine(void *argument)
     {
       switch (key_evt)
       {
-        case KEY_UP:     sprintf(msg, "KEY_UP\r\n");     break;
-        case KEY_DOWN:   sprintf(msg, "KEY_DOWN\r\n");   break;
-        case KEY_LEFT:   sprintf(msg, "KEY_LEFT\r\n");   break;
-        case KEY_RIGHT:  sprintf(msg, "KEY_RIGHT\r\n");  break;
-        case KEY_CONFIRM:sprintf(msg, "KEY_CONFIRM\r\n");break;
-        default:         sprintf(msg, "KEY_UNKNOWN\r\n");break;
+        case KEY_UP:
+          main_option = MAIN_PLACE;
+          break;
+        case KEY_DOWN:
+          main_option = MAIN_GAME;
+          break;
+        case KEY_CONFIRM:
+          // 确认选择，后续再实现
+          break;
+        default:
+          break;
       }
-      HAL_UART_Transmit(&huart1, (uint8_t*)msg, strlen(msg), 100);
     }
     osDelay(10);
   }
@@ -592,7 +595,7 @@ void StartUI(void *argument)
         OLED_ShowString(0, 35, main_option == MAIN_GAME ? "-> Play Game" : "   Play Game", OLED_8X16);
         OLED_Update();
 
-        osDelay(200);
+        osDelay(50);
     }
   /* USER CODE END StartUI */
 }
