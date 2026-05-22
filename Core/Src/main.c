@@ -30,6 +30,7 @@
 #include "adc_angle.h"
 #include "oled.h"
 #include "key.h"
+#include "chess_ai.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -43,7 +44,8 @@
 //UI(暂时)
 typedef enum
 {
-    STATE_MAIN_MENU,
+  STATE_MAIN_MENU,
+  STATE_GAME,   
 } AppState_t;
 
 AppState_t current_state = STATE_MAIN_MENU;
@@ -56,6 +58,29 @@ typedef enum
 
 MainOption_t main_option = MAIN_PLACE;
 
+// 游戏状态
+typedef enum
+{
+    GAME_SELECT_FIRST,    // 选先后手
+    GAME_AI_THINK,        // AI思考
+    GAME_PLAYER_MOVE,     // 玩家移动光标
+    GAME_PLAYER_CONFIRM,  // 玩家确认落子
+    GAME_OVER,            // 游戏结束
+} GameState_t;
+
+// 游戏控制块
+typedef struct
+{
+    uint8_t board[9];           // 棋盘
+    uint8_t cursor_pos;         // 光标位置 0-8
+    uint8_t ai_color;           // AI颜色
+    uint8_t player_color;       // 玩家颜色
+    uint8_t current_turn;       // 0=玩家, 1=AI
+    GameState_t state;
+    int game_result;            // GAME_ONGOING/BLACK_WIN/WHITE_WIN/DRAW
+} GameCtrl_t;
+
+GameCtrl_t chessgame;
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -117,6 +142,16 @@ osMessageQueueId_t keyEventQueueHandle;
 const osMessageQueueAttr_t keyEventQueue_attributes = {
   .name = "keyEventQueue"
 };
+/* Definitions for aiCommandQueue */
+osMessageQueueId_t aiCommandQueueHandle;
+const osMessageQueueAttr_t aiCommandQueue_attributes = {
+  .name = "aiCommandQueue"
+};
+/* Definitions for aiResultQueue */
+osMessageQueueId_t aiResultQueueHandle;
+const osMessageQueueAttr_t aiResultQueue_attributes = {
+  .name = "aiResultQueue"
+};
 /* Definitions for LEDBinarySem */
 osSemaphoreId_t LEDBinarySemHandle;
 const osSemaphoreAttr_t LEDBinarySem_attributes = {
@@ -140,7 +175,40 @@ void StartUI(void *argument);
 void StartReadKEY(void *argument);
 
 /* USER CODE BEGIN PFP */
-
+void DrawGameBoard(void)
+{
+  if (chessgame.state == GAME_AI_THINK)
+    OLED_ShowString(0, 0, "AI Thinking...", OLED_8X16);
+  else
+    OLED_ShowString(0, 0, chessgame.current_turn == 1 ? "AI Turn" : "Your Turn", OLED_8X16);
+  
+  for (int row = 0; row < 3; row++)
+  {
+    for (int col = 0; col < 3; col++)
+    {
+      int pos = row * 3 + col;
+      uint8_t x_start = 40 + col * 26;
+      uint8_t y_start = 16 + row * 16;
+      
+      if (chessgame.board[pos] == BLACK)
+        OLED_ShowChar(x_start, y_start, 'X', OLED_8X16);
+      else if (chessgame.board[pos] == WHITE)
+        OLED_ShowChar(x_start, y_start, 'O', OLED_8X16);
+      else if (chessgame.state == GAME_PLAYER_MOVE && pos == chessgame.cursor_pos)
+        OLED_ShowChar(x_start, y_start, '_', OLED_8X16);
+      
+      // 去掉最后一个参数 1
+      if (col < 2)
+      {
+        OLED_DrawLine(x_start + 16, y_start, x_start + 16, y_start + 16);
+      }
+      if (row < 2)
+      {
+        OLED_DrawLine(x_start, y_start + 16, x_start + 16, y_start + 16);
+      }
+    }
+  }
+}
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -211,6 +279,12 @@ int main(void)
   /* Create the queue(s) */
   /* creation of keyEventQueue */
   keyEventQueueHandle = osMessageQueueNew (3, sizeof(KeyEvent_t), &keyEventQueue_attributes);
+
+  /* creation of aiCommandQueue */
+  aiCommandQueueHandle = osMessageQueueNew (5, sizeof(uint8_t), &aiCommandQueue_attributes);
+
+  /* creation of aiResultQueue */
+  aiResultQueueHandle = osMessageQueueNew (5, sizeof(uint8_t), &aiResultQueue_attributes);
 
   /* USER CODE BEGIN RTOS_QUEUES */
     /* add queues, ... */
@@ -492,26 +566,136 @@ void StartState(void *argument)
 {
   /* USER CODE BEGIN 5 */
   KeyEvent_t key_evt;
-  /* Infinite loop */
+  uint8_t ai_result;  // 改为从 aiResultQueue 读取
+  
   for (;;)
   {
-    if (osMessageQueueGet(keyEventQueueHandle, &key_evt, NULL, 100) == osOK)
+    if (osMessageQueueGet(keyEventQueueHandle, &key_evt, NULL, 10) == osOK)
     {
       switch (key_evt)
       {
         case KEY_UP:
-          main_option = MAIN_PLACE;
+          if (current_state == STATE_MAIN_MENU)
+          {
+            main_option = MAIN_PLACE;
+          }
+          else if (chessgame.state == GAME_SELECT_FIRST)
+          {
+            chessgame.ai_color = BLACK;
+            chessgame.player_color = WHITE;
+          }
+          else if (chessgame.state == GAME_PLAYER_MOVE)
+          {
+            if (chessgame.cursor_pos >= 3) chessgame.cursor_pos -= 3;
+          }
           break;
+          
         case KEY_DOWN:
-          main_option = MAIN_GAME;
+          if (current_state == STATE_MAIN_MENU)
+          {
+            main_option = MAIN_GAME;
+          }
+          else if (chessgame.state == GAME_SELECT_FIRST)
+          {
+            chessgame.ai_color = WHITE;
+            chessgame.player_color = BLACK;
+          }
+          else if (chessgame.state == GAME_PLAYER_MOVE)
+          {
+            if (chessgame.cursor_pos <= 5) chessgame.cursor_pos += 3;
+          }
           break;
+          
+        case KEY_LEFT:
+          if (chessgame.state == GAME_PLAYER_MOVE)
+          {
+            if (chessgame.cursor_pos % 3 != 0) chessgame.cursor_pos--;
+          }
+          break;
+          
+        case KEY_RIGHT:
+          if (chessgame.state == GAME_PLAYER_MOVE)
+          {
+            if (chessgame.cursor_pos % 3 != 2) chessgame.cursor_pos++;
+          }
+          break;
+          
         case KEY_CONFIRM:
-          // 确认选择，后续再实现
+          if (current_state == STATE_MAIN_MENU)
+          {
+            if (main_option == MAIN_GAME)
+            {
+              current_state = STATE_GAME;
+              chessgame.state = GAME_SELECT_FIRST;
+              chessgame.ai_color = BLACK;
+              chessgame.player_color = WHITE;
+            }
+          }
+          else if (chessgame.state == GAME_SELECT_FIRST)
+          {
+            BoardInit(chessgame.board);
+            chessgame.cursor_pos = 4;
+            chessgame.current_turn = (chessgame.ai_color == BLACK) ? 1 : 0;
+            chessgame.game_result = GAME_ONGOING;
+            
+            if (chessgame.current_turn == 1)
+            {
+              chessgame.state = GAME_AI_THINK;
+              uint8_t cmd = 1;
+              osMessageQueuePut(aiCommandQueueHandle, &cmd, 0, 0);  // 改为 aiCommandQueue
+            }
+            else
+            {
+              chessgame.state = GAME_PLAYER_MOVE;
+            }
+          }
+          else if (chessgame.state == GAME_PLAYER_MOVE)
+          {
+            if (chessgame.board[chessgame.cursor_pos] == EMPTY)
+            {
+              chessgame.board[chessgame.cursor_pos] = chessgame.player_color;
+              chessgame.game_result = CheckGameResult(chessgame.board);
+              
+              if (chessgame.game_result != GAME_ONGOING)
+              {
+                chessgame.state = GAME_OVER;
+              }
+              else
+              {
+                chessgame.state = GAME_AI_THINK;
+                uint8_t cmd = 1;
+                osMessageQueuePut(aiCommandQueueHandle, &cmd, 0, 0);  // 改为 aiCommandQueue
+              }
+            }
+          }
+          else if (chessgame.state == GAME_OVER)
+          {
+            current_state = STATE_MAIN_MENU;
+            main_option = MAIN_GAME;
+          }
           break;
+          
         default:
           break;
       }
     }
+    
+    // 从 aiResultQueue 读取 AI 完成信号
+    if (osMessageQueueGet(aiResultQueueHandle, &ai_result, NULL, 0) == osOK)
+    {
+      if (ai_result == 2)
+      {
+        if (chessgame.game_result != GAME_ONGOING)
+        {
+          chessgame.state = GAME_OVER;
+        }
+        else
+        {
+          chessgame.state = GAME_PLAYER_MOVE;
+        }
+      }
+    }
+    
     osDelay(10);
   }
   /* USER CODE END 5 */
@@ -530,8 +714,8 @@ void StartSensorScan(void *argument)
     /* Infinite loop */
     for (;;)
     {
-        GetCurrentAngle();
-        osDelay(50);
+    GetCurrentAngle();
+    osDelay(50);
     }
   /* USER CODE END StartSensorScan */
 }
@@ -546,14 +730,31 @@ void StartSensorScan(void *argument)
 void StartAILogic(void *argument)
 {
   /* USER CODE BEGIN StartAILogic */
-    /* Infinite loop */
-    for (;;)
+  uint8_t cmd;
+  
+  for (;;)
+  {
+    // 从 aiCommandQueue 读取命令
+    if (osMessageQueueGet(aiCommandQueueHandle, &cmd, NULL, osWaitForever) == osOK)
     {
-        osDelay(1);
+      if (cmd == 1 && chessgame.state == GAME_AI_THINK)
+      {
+        int move = AI_GetBestMove(chessgame.board, chessgame.ai_color);
+        
+        if (move >= 0)
+        {
+          chessgame.board[move] = chessgame.ai_color;
+          chessgame.cursor_pos = move;
+          chessgame.game_result = CheckGameResult(chessgame.board);
+        }
+        
+        uint8_t done_cmd = 2;
+        osMessageQueuePut(aiResultQueueHandle, &done_cmd, 0, 0);  // 发送到 aiResultQueue
+      }
     }
+  }
   /* USER CODE END StartAILogic */
 }
-
 /* USER CODE BEGIN Header_StartArmControl */
 /**
  * @brief Function implementing the Task_ArmControl thread.
@@ -582,21 +783,57 @@ void StartArmControl(void *argument)
 void StartUI(void *argument)
 {
   /* USER CODE BEGIN StartUI */
+  OLED_Clear();
+  
+  for (;;)
+  {
     OLED_Clear();
-    /* Infinite loop */
-    for (;;)
+    
+    if (current_state == STATE_MAIN_MENU)
     {
-        // HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
-
-        // 显示主菜单
-        OLED_Clear();
-        OLED_ShowString(0, 0, "=== Chess Robot ===", OLED_8X16);
-        OLED_ShowString(0, 20, main_option == MAIN_PLACE ? "-> Place Chess" : "   Place Chess", OLED_8X16);
-        OLED_ShowString(0, 35, main_option == MAIN_GAME ? "-> Play Game" : "   Play Game", OLED_8X16);
-        OLED_Update();
-
-        osDelay(50);
+      OLED_ShowString(0, 0, "=== Chess Robot ===", OLED_8X16);
+      OLED_ShowString(0, 20, main_option == MAIN_PLACE ? "-> Place Chess" : "   Place Chess", OLED_8X16);
+      OLED_ShowString(0, 35, main_option == MAIN_GAME ? "-> Play Game" : "   Play Game", OLED_8X16);
     }
+    else if (chessgame.state == GAME_SELECT_FIRST)
+    {
+      OLED_ShowString(0, 0, "Select First:", OLED_8X16);
+      OLED_ShowString(0, 20, chessgame.ai_color == BLACK ? "-> AI First" : "   AI First", OLED_8X16);
+      OLED_ShowString(0, 35, chessgame.ai_color == WHITE ? "-> Player First" : "   Player First", OLED_8X16);
+      OLED_ShowString(0, 55, "CONFIRM to start", OLED_8X16);
+    }
+    else if (chessgame.state == GAME_OVER)
+    {
+      char str[20];
+      if (chessgame.game_result == GAME_BLACK_WIN)
+        sprintf(str, "Black Wins!");
+      else if (chessgame.game_result == GAME_WHITE_WIN)
+        sprintf(str, "White Wins!");
+      else
+        sprintf(str, "Draw!");
+      
+      OLED_ShowString(0, 0, "Game Over", OLED_8X16);
+      OLED_ShowString(0, 20, str, OLED_8X16);
+      
+      if ((chessgame.game_result == GAME_BLACK_WIN && chessgame.ai_color == BLACK) ||
+          (chessgame.game_result == GAME_WHITE_WIN && chessgame.ai_color == WHITE))
+      {
+        OLED_ShowString(0, 40, "AI Wins!", OLED_8X16);
+      }
+      // else
+      // {
+      //   OLED_ShowString(0, 40, "You Win!", OLED_8X16);
+      // }
+      OLED_ShowString(0, 45, "CONFIRM to back", OLED_8X16);
+    }
+    else
+    {
+      DrawGameBoard();
+    }
+    
+    OLED_Update();
+    osDelay(50);
+  }
   /* USER CODE END StartUI */
 }
 

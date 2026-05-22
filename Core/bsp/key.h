@@ -21,6 +21,7 @@ typedef struct {
 
 /* 定义按键事件类型 */
 typedef enum {
+    KEY_NONE = 0, 
     KEY_UP,
     KEY_DOWN,
     KEY_LEFT,
