@@ -31,11 +31,12 @@
 #include "oled.h"
 #include "key.h"
 #include "chess_ai.h"
+#include "sensors.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-
+uint8_t sensors[8]; // 传感器数据
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -189,44 +190,52 @@ void StartDebugTask(void *argument);
 
 /* USER CODE BEGIN PFP */
 void DrawGameBoard(void)
-{ 
-  if (chessgame.state == GAME_AI_THINK)
-    OLED_ShowString(0, 0, "AI Thinking...", OLED_8X16);
-  else
-    OLED_ShowString(0, 0, chessgame.current_turn == 1 ? "AI Turn" : "Your Turn", OLED_8X16);
-  
-  // 绘制3x3棋盘
-  for (int row = 0; row < 3; row++)
-  {
-    for (int col = 0; col < 3; col++)
+{
+    OLED_Clear(); // 先清屏
+    
+    // 显示状态文字 - 用更简洁的方式
+    if (chessgame.state == GAME_AI_THINK)
+        OLED_ShowString(0, 0, "AI Thinking", OLED_8X16);  
+    else
+        OLED_ShowString(0, 0, chessgame.current_turn == 1 ? "AI Turn" : "Man Turn", OLED_8X16);  
+    
+    // 绘制3x3棋盘线（往下移一点，避免遮挡提示文字）
+    OLED_DrawLine(43, 16, 43, 60);
+    OLED_DrawLine(82, 16, 82, 60);
+    OLED_DrawLine(4, 30, 121, 30);
+    OLED_DrawLine(4, 44, 121, 44);
+    
+    // 先绘制光标 - 用方框或反色效果
+    if (chessgame.state == GAME_PLAYER_MOVE)
     {
-      int pos = row * 3 + col;
-      uint8_t x_start = 40 + col * 26;
-      uint8_t y_start = 16 + row * 16;
-      
-      if (chessgame.board[pos] == BLACK)
-      {
-        OLED_ShowChar(x_start, y_start, 'X', OLED_8X16);
-      }
-      else if (chessgame.board[pos] == WHITE)
-      {
-        OLED_ShowChar(x_start, y_start, 'O', OLED_8X16);
-      }
-      else if (chessgame.state == GAME_PLAYER_MOVE && pos == chessgame.cursor_pos)
-      {
-        OLED_ShowChar(x_start, y_start, '_', OLED_8X16);
-      }
-      
-      if (col < 2)
-      {
-        OLED_DrawLine(x_start + 16, y_start, x_start + 16, y_start + 16);
-      }
-      if (row < 2)
-      {
-        OLED_DrawLine(x_start, y_start + 16, x_start + 16, y_start + 16);
-      }
+        int row = chessgame.cursor_pos / 3, col = chessgame.cursor_pos % 3;
+        int x0 = 4 + col * 39;
+        int y0 = 16 + row * 14;
+     
+        // 在所有格子上都画方框
+        OLED_DrawLine(x0, y0, x0 + 38, y0);         // 上边
+        OLED_DrawLine(x0, y0, x0, y0 + 13);         // 左边
+        OLED_DrawLine(x0 + 38, y0, x0 + 38, y0 + 13); // 右边
+        OLED_DrawLine(x0, y0 + 13, x0 + 38, y0 + 13); // 下边
+
     }
-  }
+    
+    // 绘制棋子
+    for (int i = 0; i < 9; i++)
+    {
+        if (chessgame.board[i] == EMPTY) continue;
+        
+        int row = i / 3, col = i % 3;
+        int cx = 4 + col * 39 + 20;  // 格子中心x
+        int cy = 16 + row * 14 + 7;   // 格子中心y
+        
+        if (chessgame.board[i] == BLACK)
+            OLED_DrawCircle(cx, cy, 5, 1);  // 稍微缩小圆半径
+        else
+            OLED_DrawCircle(cx, cy, 5, 0);
+    }
+    
+    OLED_Update();
 }
 /* USER CODE END PFP */
 
@@ -546,30 +555,22 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(LED_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : sensor_1_Pin sensor_2_Pin sensor_3_Pin sensor_4_Pin
-                           sensor_5_Pin sensor_6_Pin sensor_7_Pin */
+                           sensor_5_Pin sensor_6_Pin sensor_7_Pin KEY_5_Pin
+                           KEY_4_Pin */
   GPIO_InitStruct.Pin = sensor_1_Pin|sensor_2_Pin|sensor_3_Pin|sensor_4_Pin
-                          |sensor_5_Pin|sensor_6_Pin|sensor_7_Pin;
+                          |sensor_5_Pin|sensor_6_Pin|sensor_7_Pin|KEY_5_Pin
+                          |KEY_4_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : sensor_8_Pin */
-  GPIO_InitStruct.Pin = sensor_8_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(sensor_8_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : sensor_9_Pin KEY_3_Pin KEY_2_Pin KEY_1_Pin */
-  GPIO_InitStruct.Pin = sensor_9_Pin|KEY_3_Pin|KEY_2_Pin|KEY_1_Pin;
+  /*Configure GPIO pins : sensor_8_Pin sensor_9_Pin KEY_3_Pin KEY_2_Pin
+                           KEY_1_Pin */
+  GPIO_InitStruct.Pin = sensor_8_Pin|sensor_9_Pin|KEY_3_Pin|KEY_2_Pin
+                          |KEY_1_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : KEY_5_Pin KEY_4_Pin */
-  GPIO_InitStruct.Pin = KEY_5_Pin|KEY_4_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_PULLUP;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /* USER CODE BEGIN MX_GPIO_Init_2 */
 
@@ -740,7 +741,8 @@ void StartSensorScan(void *argument)
     for (;;)
     {
     GetCurrentAngle();
-    osDelay(50);
+    read_sensors(sensors);
+    osDelay(500);
     }
   /* USER CODE END StartSensorScan */
 }
@@ -855,7 +857,7 @@ void StartUI(void *argument)
     
     OLED_Update();
     osMutexRelease(oledMutexHandle);
-    osDelay(200);
+    osDelay(50);
   }
   /* USER CODE END StartUI */
 }
@@ -909,11 +911,10 @@ void StartReadKEY(void *argument)
 void StartDebugTask(void *argument)
 {
   /* USER CODE BEGIN StartDebugTask */
-  char debug_buf[128];
+  char debug_buf[256];
   /* Infinite loop */
   for(;;)
   {
-    // 构建要发送的字符串
     int len = sprintf(debug_buf, "Board:\r\n");
     HAL_UART_Transmit(&huart1, (uint8_t*)debug_buf, len, 100);
     
@@ -933,6 +934,14 @@ void StartDebugTask(void *argument)
         HAL_UART_Transmit(&huart1, (uint8_t*)debug_buf, 2, 100);
       }
       HAL_UART_Transmit(&huart1, (uint8_t*)"\r\n", 2, 100);
+    }
+    HAL_UART_Transmit(&huart1, (uint8_t*)"\r\n", 2, 100);
+
+    // 输出8个传感器值
+    for (int i = 0; i < 8; i++)
+    {
+      len = sprintf(debug_buf, "s%d: %d ", i+1, sensors[i]);
+      HAL_UART_Transmit(&huart1, (uint8_t*)debug_buf, len, 100);
     }
     HAL_UART_Transmit(&huart1, (uint8_t*)"\r\n", 2, 100);
     

@@ -1,25 +1,6 @@
 #include "key.h"
 
 /* ---------- 应用层动作函数（当前全部翻转LED） ---------- */
-// static void Key1_Action(void) {
-//     HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
-// }
-
-// static void Key2_Action(void) {
-//     HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
-// }
-
-// static void Key3_Action(void) {
-//     HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
-// }
-
-// static void Key4_Action(void) {
-//     HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
-// }
-
-// static void Key5_Action(void) {
-//     HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
-// }
 void Key1_Action(void) {
     KeyEvent_t event = KEY_LEFT;
     osMessageQueuePut(keyEventQueueHandle, &event, 0, 0);
