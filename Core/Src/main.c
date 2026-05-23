@@ -114,7 +114,7 @@ osThreadId_t Task_AILogicHandle;
 const osThreadAttr_t Task_AILogic_attributes = {
   .name = "Task_AILogic",
   .stack_size = 512 * 4,
-  .priority = (osPriority_t) osPriorityNormal2,
+  .priority = (osPriority_t) osPriorityNormal5,
 };
 /* Definitions for Task_ArmControl */
 osThreadId_t Task_ArmControlHandle;
@@ -303,10 +303,10 @@ int main(void)
   keyEventQueueHandle = osMessageQueueNew (3, sizeof(KeyEvent_t), &keyEventQueue_attributes);
 
   /* creation of aiCommandQueue */
-  aiCommandQueueHandle = osMessageQueueNew (5, sizeof(uint8_t), &aiCommandQueue_attributes);
+  aiCommandQueueHandle = osMessageQueueNew (1, sizeof(uint8_t), &aiCommandQueue_attributes);
 
   /* creation of aiResultQueue */
-  aiResultQueueHandle = osMessageQueueNew (5, sizeof(uint8_t), &aiResultQueue_attributes);
+  aiResultQueueHandle = osMessageQueueNew (1, sizeof(uint8_t), &aiResultQueue_attributes);
 
   /* USER CODE BEGIN RTOS_QUEUES */
     /* add queues, ... */
