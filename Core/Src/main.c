@@ -159,6 +159,11 @@ osMessageQueueId_t aiResultQueueHandle;
 const osMessageQueueAttr_t aiResultQueue_attributes = {
   .name = "aiResultQueue"
 };
+/* Definitions for oledMutex */
+osMutexId_t oledMutexHandle;
+const osMutexAttr_t oledMutex_attributes = {
+  .name = "oledMutex"
+};
 /* Definitions for LEDBinarySem */
 osSemaphoreId_t LEDBinarySemHandle;
 const osSemaphoreAttr_t LEDBinarySem_attributes = {
@@ -184,12 +189,13 @@ void StartDebugTask(void *argument);
 
 /* USER CODE BEGIN PFP */
 void DrawGameBoard(void)
-{
+{ 
   if (chessgame.state == GAME_AI_THINK)
     OLED_ShowString(0, 0, "AI Thinking...", OLED_8X16);
   else
     OLED_ShowString(0, 0, chessgame.current_turn == 1 ? "AI Turn" : "Your Turn", OLED_8X16);
   
+  // 绘制3x3棋盘
   for (int row = 0; row < 3; row++)
   {
     for (int col = 0; col < 3; col++)
@@ -199,11 +205,17 @@ void DrawGameBoard(void)
       uint8_t y_start = 16 + row * 16;
       
       if (chessgame.board[pos] == BLACK)
+      {
         OLED_ShowChar(x_start, y_start, 'X', OLED_8X16);
+      }
       else if (chessgame.board[pos] == WHITE)
+      {
         OLED_ShowChar(x_start, y_start, 'O', OLED_8X16);
+      }
       else if (chessgame.state == GAME_PLAYER_MOVE && pos == chessgame.cursor_pos)
+      {
         OLED_ShowChar(x_start, y_start, '_', OLED_8X16);
+      }
       
       if (col < 2)
       {
@@ -266,6 +278,9 @@ int main(void)
 
   /* Init scheduler */
   osKernelInitialize();
+  /* Create the mutex(es) */
+  /* creation of oledMutex */
+  oledMutexHandle = osMutexNew(&oledMutex_attributes);
 
   /* USER CODE BEGIN RTOS_MUTEX */
     /* add mutexes, ... */
@@ -797,6 +812,12 @@ void StartUI(void *argument)
   /* Infinite loop */
   for (;;)
   {
+    if (osMutexAcquire(oledMutexHandle, 50) != osOK)
+    {
+      osDelay(10);
+      continue;
+    }
+    
     OLED_Clear();
     
     if (current_state == STATE_MAIN_MENU)
@@ -813,19 +834,19 @@ void StartUI(void *argument)
     }
     else if (chessgame.state == GAME_OVER)
     {
-        OLED_ShowString(0, 0, "Game Over", OLED_8X16);
-    
-        if (chessgame.game_result == GAME_DRAW)
-        {
-            OLED_ShowString(0, 20, "Draw!", OLED_8X16);
-        }
-        else if ((chessgame.game_result == GAME_BLACK_WIN && chessgame.ai_color == BLACK) ||
-                 (chessgame.game_result == GAME_WHITE_WIN && chessgame.ai_color == WHITE))
-        {
-            OLED_ShowString(0, 20, "AI Wins!", OLED_8X16);
-        }
-
-        OLED_ShowString(0, 45, "CONFIRM to back", OLED_8X16);
+      OLED_ShowString(0, 0, "Game Over", OLED_8X16);
+      
+      if (chessgame.game_result == GAME_DRAW)
+      {
+        OLED_ShowString(0, 20, "Draw!", OLED_8X16);
+      }
+      else if ((chessgame.game_result == GAME_BLACK_WIN && chessgame.ai_color == BLACK) ||
+               (chessgame.game_result == GAME_WHITE_WIN && chessgame.ai_color == WHITE))
+      {
+        OLED_ShowString(0, 20, "AI Wins!", OLED_8X16);
+      }
+      
+      OLED_ShowString(0, 45, "CONFIRM to back", OLED_8X16);
     }
     else
     {
@@ -833,7 +854,8 @@ void StartUI(void *argument)
     }
     
     OLED_Update();
-    osDelay(50);
+    osMutexRelease(oledMutexHandle);
+    osDelay(200);
   }
   /* USER CODE END StartUI */
 }
