@@ -82,6 +82,11 @@ typedef struct
 } GameCtrl_t;
 
 GameCtrl_t chessgame;
+
+// 任务通知标志位定义
+#define FLAG_AI_START       (1 << 0)  // 通知AI开始思考
+#define FLAG_AI_DONE        (1 << 1)  // AI思考完成通知
+#define FLAG_STATE_UPDATE   (1 << 2)  // 状态更新通知
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -593,9 +598,24 @@ void StartState(void *argument)
   /* USER CODE BEGIN 5 */
   KeyEvent_t key_evt;
   uint8_t ai_result;  // 改为从 aiResultQueue 读取
+  uint32_t flags;  // 新增：用于接收任务通知
   
   for (;;)
   {
+    // 先检查 AI 完成通知（非阻塞方式）
+    flags = osThreadFlagsWait(FLAG_AI_DONE, osFlagsWaitAny, 0);
+    if (flags & FLAG_AI_DONE)
+    {
+      if (chessgame.game_result != GAME_ONGOING)
+      {
+        chessgame.state = GAME_OVER;
+      }
+      else
+      {
+        chessgame.state = GAME_PLAYER_MOVE;
+      }
+    }
+    
     if (osMessageQueueGet(keyEventQueueHandle, &key_evt, NULL, 10) == osOK)
     {
       switch (key_evt)
@@ -706,21 +726,21 @@ void StartState(void *argument)
       }
     }
     
-    // 从 aiResultQueue 读取 AI 完成信号
-    if (osMessageQueueGet(aiResultQueueHandle, &ai_result, NULL, 0) == osOK)
-    {
-      if (ai_result == 2)
-      {
-        if (chessgame.game_result != GAME_ONGOING)
-        {
-          chessgame.state = GAME_OVER;
-        }
-        else
-        {
-          chessgame.state = GAME_PLAYER_MOVE;
-        }
-      }
-    }
+    // 删除原来的 aiResultQueue 接收代码
+    // if (osMessageQueueGet(aiResultQueueHandle, &ai_result, NULL, 0) == osOK)
+    // {
+    //   if (ai_result == 2)
+    //   {
+    //     if (chessgame.game_result != GAME_ONGOING)
+    //     {
+    //       chessgame.state = GAME_OVER;
+    //     }
+    //     else
+    //     {
+    //       chessgame.state = GAME_PLAYER_MOVE;
+    //     }
+    //   }
+    // }
     
     osDelay(10);
   }
@@ -775,8 +795,9 @@ void StartAILogic(void *argument)
           chessgame.game_result = CheckGameResult(chessgame.board);
         }
         
-        uint8_t done_cmd = 2;
-        osMessageQueuePut(aiResultQueueHandle, &done_cmd, 0, 0);  // 发送到 aiResultQueue
+        // uint8_t done_cmd = 2;
+        // osMessageQueuePut(aiResultQueueHandle, &done_cmd, 0, 0);  // 发送到 aiResultQueue
+        osThreadFlagsSet(Task_StateHandle, FLAG_AI_DONE);
       }
     }
   }
