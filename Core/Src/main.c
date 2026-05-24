@@ -597,8 +597,7 @@ void StartState(void *argument)
 {
   /* USER CODE BEGIN 5 */
   KeyEvent_t key_evt;
-  uint8_t ai_result;  // 改为从 aiResultQueue 读取
-  uint32_t flags;  // 新增：用于接收任务通知
+  uint32_t flags;  // 用于接收任务通知
   
   for (;;)
   {
@@ -687,8 +686,8 @@ void StartState(void *argument)
             if (chessgame.current_turn == 1)
             {
               chessgame.state = GAME_AI_THINK;
-              uint8_t cmd = 1;
-              osMessageQueuePut(aiCommandQueueHandle, &cmd, 0, 0);  // 改为 aiCommandQueue
+              // 使用任务通知通知AI开始
+              osThreadFlagsSet(Task_AILogicHandle, FLAG_AI_START);
             }
             else
             {
@@ -709,8 +708,8 @@ void StartState(void *argument)
               else
               {
                 chessgame.state = GAME_AI_THINK;
-                uint8_t cmd = 1;
-                osMessageQueuePut(aiCommandQueueHandle, &cmd, 0, 0);  // 改为 aiCommandQueue
+                // 使用任务通知通知AI开始
+                osThreadFlagsSet(Task_AILogicHandle, FLAG_AI_START);
               }
             }
           }
@@ -725,22 +724,6 @@ void StartState(void *argument)
           break;
       }
     }
-    
-    // 删除原来的 aiResultQueue 接收代码
-    // if (osMessageQueueGet(aiResultQueueHandle, &ai_result, NULL, 0) == osOK)
-    // {
-    //   if (ai_result == 2)
-    //   {
-    //     if (chessgame.game_result != GAME_ONGOING)
-    //     {
-    //       chessgame.state = GAME_OVER;
-    //     }
-    //     else
-    //     {
-    //       chessgame.state = GAME_PLAYER_MOVE;
-    //     }
-    //   }
-    // }
     
     osDelay(10);
   }
@@ -777,28 +760,26 @@ void StartSensorScan(void *argument)
 void StartAILogic(void *argument)
 {
   /* USER CODE BEGIN StartAILogic */
-  uint8_t cmd;
+  uint32_t flags;
   
   for (;;)
   {
-    // 从 aiCommandQueue 读取命令
-    if (osMessageQueueGet(aiCommandQueueHandle, &cmd, NULL, osWaitForever) == osOK)
+    // 使用任务通知等待AI开始指令
+    flags = osThreadFlagsWait(FLAG_AI_START, osFlagsWaitAny, osWaitForever);
+    
+    if ((flags & FLAG_AI_START) && chessgame.state == GAME_AI_THINK)
     {
-      if (cmd == 1 && chessgame.state == GAME_AI_THINK)
+      int move = AI_GetBestMove(chessgame.board, chessgame.ai_color);
+      
+      if (move >= 0)
       {
-        int move = AI_GetBestMove(chessgame.board, chessgame.ai_color);
-        
-        if (move >= 0)
-        {
-          chessgame.board[move] = chessgame.ai_color;
-          chessgame.cursor_pos = move;
-          chessgame.game_result = CheckGameResult(chessgame.board);
-        }
-        
-        // uint8_t done_cmd = 2;
-        // osMessageQueuePut(aiResultQueueHandle, &done_cmd, 0, 0);  // 发送到 aiResultQueue
-        osThreadFlagsSet(Task_StateHandle, FLAG_AI_DONE);
+        chessgame.board[move] = chessgame.ai_color;
+        chessgame.cursor_pos = move;
+        chessgame.game_result = CheckGameResult(chessgame.board);
       }
+      
+      // 使用任务通知通知State任务AI完成
+      osThreadFlagsSet(Task_StateHandle, FLAG_AI_DONE);
     }
   }
   /* USER CODE END StartAILogic */
