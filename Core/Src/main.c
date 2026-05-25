@@ -179,27 +179,31 @@ void DrawGameBoard(void)
 {
     OLED_Clear(); // 先清屏
     
-    // 修改这里：使用 current_state 替代 chessgame.state
+    // 只在非 GAME_OVER 状态下显示顶部文字
     if (current_state == STATE_AI_THINK)
-        OLED_ShowString(0, 0, "AI Thinking", OLED_8X16);  
-    else
-        OLED_ShowString(0, 0, chessgame.current_turn == 1 ? "AI Turn" : "Man Turn", OLED_8X16);  
+    {
+        OLED_ShowString(0, 0, "AI Turn", OLED_8X16);
+    }
+    else if (current_state == STATE_PLAYER_MOVE)
+    {
+        OLED_ShowString(0, 0, "Hu Turn", OLED_8X16);
+    }
+    // STATE_GAME_OVER 时不绘制任何顶部文字，由外层处理
     
-    // 绘制3x3棋盘线（往下移一点，避免遮挡提示文字）
+    // 绘制3x3棋盘线
     OLED_DrawLine(43, 16, 43, 60);
     OLED_DrawLine(82, 16, 82, 60);
     OLED_DrawLine(4, 30, 121, 30);
     OLED_DrawLine(4, 44, 121, 44);
     
-    // 先绘制光标 - 用方框或反色效果
-    // 修改这里：使用 current_state 替代 chessgame.state
+    // 绘制光标 - 只在玩家移动时显示
     if (current_state == STATE_PLAYER_MOVE)
     {
         int row = chessgame.cursor_pos / 3, col = chessgame.cursor_pos % 3;
         int x0 = 4 + col * 39;
         int y0 = 16 + row * 14;
      
-        // 在所有格子上都画方框
+        // 画方框表示光标
         OLED_DrawLine(x0, y0, x0 + 38, y0);         // 上边
         OLED_DrawLine(x0, y0, x0, y0 + 13);         // 左边
         OLED_DrawLine(x0 + 38, y0, x0 + 38, y0 + 13); // 右边
@@ -216,9 +220,9 @@ void DrawGameBoard(void)
         int cy = 16 + row * 14 + 7;   // 格子中心y
         
         if (chessgame.board[i] == BLACK)
-            OLED_DrawCircle(cx, cy, 5, 1);  // 稍微缩小圆半径
+            OLED_DrawCircle(cx, cy, 5, 1);  // 填充圆
         else
-            OLED_DrawCircle(cx, cy, 5, 0);
+            OLED_DrawCircle(cx, cy, 5, 0);  // 空心圆
     }
     OLED_Update();
 }
@@ -352,6 +356,14 @@ void HandleGameOver(KeyEvent_t key)
     switch (key)
     {
         case KEY_CONFIRM:
+            // 重置游戏状态
+            BoardInit(chessgame.board);           // 清空棋盘
+            chessgame.cursor_pos = 4;              // 光标居中
+            chessgame.ai_color = BLACK;            // 默认AI黑棋
+            chessgame.player_color = WHITE;        // 默认玩家白棋
+            chessgame.current_turn = 0;            // 默认玩家先手
+            chessgame.game_result = GAME_ONGOING;  // 重置结果
+            
             current_state = STATE_MAIN_MENU;
             main_option = MAIN_GAME;
             break;
@@ -868,15 +880,16 @@ void StartUI(void *argument)
             break;
             
         case STATE_GAME_OVER:
-            OLED_ShowString(0, 0, "Game Over", OLED_8X16);
-            
+            // OLED_ShowString(0, 0, "Game Over", OLED_8X16);
+            DrawGameBoard();
             if (chessgame.game_result == GAME_DRAW)
-                OLED_ShowString(0, 20, "Draw!", OLED_8X16);
+                OLED_ShowString(0, 0, "Draw!", OLED_8X16);
             else if ((chessgame.game_result == GAME_BLACK_WIN && chessgame.ai_color == BLACK) ||
                      (chessgame.game_result == GAME_WHITE_WIN && chessgame.ai_color == WHITE))
-                OLED_ShowString(0, 20, "AI Wins!", OLED_8X16);
-            
-            OLED_ShowString(0, 45, "CONFIRM to back", OLED_8X16);
+                OLED_ShowString(0, 0, "AI Win!", OLED_8X16);
+            else if ((chessgame.game_result == GAME_BLACK_WIN && chessgame.player_color == BLACK) ||
+                     (chessgame.game_result == GAME_WHITE_WIN && chessgame.player_color == WHITE))
+                OLED_ShowString(0, 0, "Human Win!", OLED_8X16);
             break;
             
         case STATE_AI_THINK:
