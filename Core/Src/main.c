@@ -46,6 +46,7 @@ typedef enum
 {
     STATE_MAIN_MENU,        // 主菜单
     STATE_SELECT_FIRST,     // 选先后手
+    // STATE_TEXT_MENU,     // Text功能菜单  <-- 新增
     STATE_AI_THINK,         // AI思考
     STATE_PLAYER_MOVE,      // 玩家移动光标/落子
     STATE_GAME_OVER,        // 游戏结束
@@ -57,9 +58,19 @@ typedef enum
 {
     MAIN_PLACE = 0,
     MAIN_GAME = 1,
+    MAIN_TEXT = 2, 
 } MainOption_t;
 
 MainOption_t main_option = MAIN_PLACE;
+
+typedef enum
+{
+    SELECT_AI_FIRST = 0,    // AI先手
+    SELECT_PLAYER_FIRST,    // 玩家先手  
+    SELECT_BACK             // 返回主菜单
+} SelectOption_t;
+
+SelectOption_t select_option = SELECT_AI_FIRST;
 
 // 游戏控制块
 typedef struct
@@ -238,6 +249,7 @@ void EnterSelectFirst(void)
 {
     chessgame.ai_color = BLACK;
     chessgame.player_color = WHITE;
+    select_option = SELECT_AI_FIRST;
 }
 
 void EnterGamePlay(void)
@@ -265,18 +277,29 @@ void HandleMainMenu(KeyEvent_t key)
     switch (key)
     {
         case KEY_UP:
-            main_option = MAIN_PLACE;
+            if (main_option > MAIN_PLACE)
+                main_option--;
             break;
             
         case KEY_DOWN:
-            main_option = MAIN_GAME;
+            if (main_option < MAIN_TEXT)
+                main_option++;
             break;
             
         case KEY_CONFIRM:
             if (main_option == MAIN_GAME)
             {
                 current_state = STATE_SELECT_FIRST;
-                EnterSelectFirst();  
+                EnterSelectFirst();
+            }
+            else if (main_option == MAIN_PLACE)
+            {
+                // current_state = STATE_TEXT_MENU;
+                // 可以在这里初始化Text相关变量
+            }
+            else if (main_option == MAIN_TEXT)
+            {
+                // 预留Place功能
             }
             break;
             
@@ -290,17 +313,34 @@ void HandleSelectFirst(KeyEvent_t key)
     switch (key)
     {
         case KEY_UP:
-            chessgame.ai_color = BLACK;
-            chessgame.player_color = WHITE;
+            if (select_option > SELECT_AI_FIRST)
+                select_option--;
             break;
             
         case KEY_DOWN:
-            chessgame.ai_color = WHITE;
-            chessgame.player_color = BLACK;
+            if (select_option < SELECT_BACK)
+                select_option++;
             break;
             
         case KEY_CONFIRM:
-            EnterGamePlay();
+            if (select_option == SELECT_AI_FIRST)
+            {
+                chessgame.ai_color = BLACK;
+                chessgame.player_color = WHITE;
+                EnterGamePlay();
+            }
+            else if (select_option == SELECT_PLAYER_FIRST)
+            {
+                chessgame.ai_color = WHITE;
+                chessgame.player_color = BLACK;
+                EnterGamePlay();
+            }
+            else if (select_option == SELECT_BACK)
+            {
+                current_state = STATE_MAIN_MENU;
+                main_option = MAIN_GAME;
+                select_option = SELECT_AI_FIRST;  // 重置选择
+            }
             break;
             
         default:
@@ -871,12 +911,14 @@ void StartUI(void *argument)
             OLED_ShowString(0, 0, "=== Chess Robot ===", OLED_8X16);
             OLED_ShowString(0, 20, main_option == MAIN_PLACE ? "-> Place Chess" : "   Place Chess", OLED_8X16);
             OLED_ShowString(0, 35, main_option == MAIN_GAME ? "-> Play Game" : "   Play Game", OLED_8X16);
+            OLED_ShowString(0, 50, main_option == MAIN_TEXT ? "-> Text" : "   Text", OLED_8X16);
             break;
             
         case STATE_SELECT_FIRST:
             OLED_ShowString(0, 0, "Select First:", OLED_8X16);
-            OLED_ShowString(0, 20, chessgame.ai_color == BLACK ? "-> AI First" : "   AI First", OLED_8X16);
-            OLED_ShowString(0, 35, chessgame.ai_color == WHITE ? "-> Player First" : "   Player First", OLED_8X16);
+            OLED_ShowString(0, 20, select_option == SELECT_AI_FIRST ? "-> AI First" : "   AI First", OLED_8X16);
+            OLED_ShowString(0, 35, select_option == SELECT_PLAYER_FIRST ? "-> Player First" : "   Player First", OLED_8X16);
+            OLED_ShowString(0, 50, select_option == SELECT_BACK ? "-> Back" : "   Back", OLED_8X16);
             break;
             
         case STATE_GAME_OVER:
