@@ -34,6 +34,6 @@ extern Key_t keys[KEY_NUM];
 
 extern osMessageQueueId_t keyEventQueueHandle;
 
-// void Key_Scan(void);
+void Key_Scan(void);
 
 #endif /* __KEY_H */

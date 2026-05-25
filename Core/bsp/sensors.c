@@ -10,6 +10,7 @@ void read_sensors(uint8_t *sensors) //*sensors等价于sensors[]
     sensors[5] = (HAL_GPIO_ReadPin(sensor_6_GPIO_Port, sensor_6_Pin) == GPIO_PIN_RESET) ? 1 : 0;
     sensors[6] = (HAL_GPIO_ReadPin(sensor_7_GPIO_Port, sensor_7_Pin) == GPIO_PIN_RESET) ? 1 : 0;
     sensors[7] = (HAL_GPIO_ReadPin(sensor_8_GPIO_Port, sensor_8_Pin) == GPIO_PIN_RESET) ? 1 : 0;
+    sensors[8] = (HAL_GPIO_ReadPin(sensor_9_GPIO_Port, sensor_9_Pin) == GPIO_PIN_RESET) ? 1 : 0;
 }
 
 int detect_move(uint8_t *prev, uint8_t *curr)

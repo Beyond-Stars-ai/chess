@@ -36,7 +36,7 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-uint8_t sensors[8]; // 传感器数据
+uint8_t sensors[9]; // 传感器数据
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -272,6 +272,7 @@ void HandleMainMenu(KeyEvent_t key)
             if (main_option == MAIN_GAME)
             {
                 current_state = STATE_SELECT_FIRST;
+                EnterSelectFirst();  
             }
             break;
             
@@ -907,27 +908,7 @@ void StartReadKEY(void *argument)
   /* Infinite loop */
   for (;;)
   {
-    for (int i = 0; i < KEY_NUM; i++)
-    {
-      uint8_t cur = (HAL_GPIO_ReadPin(keys[i].port, keys[i].pin) == GPIO_PIN_RESET) ? 0 : 1;
-      if (keys[i].last_state == 1 && cur == 0 && keys[i].action_done == 0)
-      {
-        osDelay(20);
-        if (HAL_GPIO_ReadPin(keys[i].port, keys[i].pin) == GPIO_PIN_RESET)
-        {
-          if (keys[i].action)
-          {
-            keys[i].action();
-          }
-          keys[i].action_done = 1;
-        }
-      }
-      if (cur == 1)
-      {
-        keys[i].action_done = 0;
-      }
-      keys[i].last_state = cur;
-    }
+    Key_Scan();
     osDelay(10);
   }
   /* USER CODE END StartReadKEY */
@@ -969,8 +950,8 @@ void StartDebugTask(void *argument)
     }
     HAL_UART_Transmit(&huart1, (uint8_t*)"\r\n", 2, 100);
 
-    // 输出8个传感器值
-    for (int i = 0; i < 8; i++)
+    // 输出9个传感器值
+    for (int i = 0; i < 9; i++)
     {
       len = sprintf(debug_buf, "s%d: %d ", i+1, sensors[i]);
       HAL_UART_Transmit(&huart1, (uint8_t*)debug_buf, len, 100);

@@ -34,30 +34,30 @@ Key_t keys[KEY_NUM] = {
 };
 
 /* ---------- 按键扫描 ---------- */
-// void Key_Scan(void)
-// {
-//     for (int i = 0; i < KEY_NUM; i++)
-//     {
-//         uint8_t cur = (HAL_GPIO_ReadPin(keys[i].port, keys[i].pin) == GPIO_PIN_RESET) ? 0 : 1;
+void Key_Scan(void)
+{
+    for (int i = 0; i < KEY_NUM; i++)
+    {
+        uint8_t cur = (HAL_GPIO_ReadPin(keys[i].port, keys[i].pin) == GPIO_PIN_RESET) ? 0 : 1;
         
-//         if (keys[i].last_state == 1 && cur == 0 && keys[i].action_done == 0)
-//         {
-//             osDelay(20);
-//             if (HAL_GPIO_ReadPin(keys[i].port, keys[i].pin) == GPIO_PIN_RESET)
-//             {
-//                 if (keys[i].action)
-//                 {
-//                     keys[i].action();
-//                 }
-//                 keys[i].action_done = 1;
-//             }
-//         }
+        if (keys[i].last_state == 1 && cur == 0 && keys[i].action_done == 0)
+        {
+            osDelay(20);
+            if (HAL_GPIO_ReadPin(keys[i].port, keys[i].pin) == GPIO_PIN_RESET)
+            {
+                if (keys[i].action)
+                {
+                    keys[i].action();
+                }
+                keys[i].action_done = 1;
+            }
+        }
         
-//         if (cur == 1)
-//         {
-//             keys[i].action_done = 0;
-//         }
+        if (cur == 1)
+        {
+            keys[i].action_done = 0;
+        }
         
-//         keys[i].last_state = cur;
-//     }
-// }
+        keys[i].last_state = cur;
+    }
+}
