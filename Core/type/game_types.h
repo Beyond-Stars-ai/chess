@@ -35,9 +35,10 @@ typedef enum
 } SelectOption_t;
 
 typedef enum {
+    // CELL_EMPTY = 0, 
     CELL_BLACK = 1,
     CELL_WHITE = 2,
-    BACK_SELECT = 3,       // 返回主菜单
+    COLOR_BACK = 3,       // 返回主菜单
 } CellState_t;             //由于神奇的原因，CELL_BLACK的值不能为0
 
 typedef struct

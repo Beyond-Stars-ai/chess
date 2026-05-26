@@ -101,7 +101,7 @@ void DrawColorSelectMenu(uint8_t color_option)
     OLED_ShowString(0, 0, "Select Color:", OLED_8X16);
     OLED_ShowString(0, 20, color_option == CELL_BLACK ? "-> Black" : "   Black", OLED_8X16);
     OLED_ShowString(0, 35, color_option == CELL_WHITE ? "-> White" : "   White", OLED_8X16);
-    OLED_ShowString(0, 50, color_option == BACK_SELECT ? "-> Back" : "   Back", OLED_8X16);
+    OLED_ShowString(0, 50, color_option == COLOR_BACK ? "-> Back" : "   Back", OLED_8X16);
     OLED_Update();
 }
 
