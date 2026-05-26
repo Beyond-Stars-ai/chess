@@ -5,10 +5,6 @@
 #include "game_types.h"
 #include "key.h"
 
-// 任务通知标志位定义
-#define FLAG_AI_START       (1 << 0)
-#define FLAG_AI_DONE        (1 << 1)
-
 // ==================== 状态处理函数 ====================
 
 // 主菜单状态处理

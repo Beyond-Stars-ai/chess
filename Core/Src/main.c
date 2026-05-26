@@ -41,6 +41,8 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
+uint8_t sensors_Start[9]; // 传感器数据
+uint8_t sensors_End[9]; // 传感器数据
 uint8_t sensors[9]; // 传感器数据
 /* USER CODE END PTD */
 
@@ -49,11 +51,6 @@ uint8_t sensors[9]; // 传感器数据
 AppState_t current_state = STATE_MAIN_MENU;
 GameCtrl_t chessgame;
 UIOptions_t ui_options;
-
-// 任务通知标志位定义
-// #define FLAG_AI_START       (1 << 0)  // 通知AI开始思考
-// #define FLAG_AI_DONE        (1 << 1)  // AI思考完成通知
-
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -567,15 +564,39 @@ void StartState(void *argument)
 /* USER CODE END Header_StartSensorScan */
 void StartSensorScan(void *argument)
 {
-  /* USER CODE BEGIN StartSensorScan */
-    /* Infinite loop */
+    /* USER CODE BEGIN StartSensorScan */
+    uint32_t flags;
+    
     for (;;)
     {
-    GetCurrentAngle();
-    read_sensors(sensors);
-    osDelay(500);
+        // 1. 阻塞等待任何通知（默认阻塞态）
+        flags = osThreadFlagsWait(FLAG_START_SCAN | FLAG_STOP_SCAN, osFlagsWaitAny, osWaitForever);
+
+        if (flags & FLAG_START_SCAN)
+        {
+            read_sensors(sensors_Start);
+            while (1)
+            {
+                // 等待 300ms，同时监听停止标志（非阻塞等待，超时300ms）
+                flags = osThreadFlagsWait(FLAG_STOP_SCAN, osFlagsWaitAny, 300);
+                
+                if (flags & FLAG_STOP_SCAN)
+                {
+                    // settlement_function();   // 你的结算函数
+                    break;                  // 退出采样循环，回到外层阻塞态
+                }
+                else
+                {
+                    read_sensors(sensors);   // 超时（300ms内无停止标志）：执行一次周期性采样
+                }
+            }
+        }
+        else if (flags & FLAG_STOP_SCAN)
+        {
+            continue;
+        }
     }
-  /* USER CODE END StartSensorScan */
+    /* USER CODE END StartSensorScan */
 }
 
 /* USER CODE BEGIN Header_StartAILogic */
@@ -597,15 +618,15 @@ void StartAILogic(void *argument)
     
     if ((flags & FLAG_AI_START) && current_state == STATE_AI_THINK)
     {
-      // int move = AI_GetBestMove(chessgame.board, chessgame.ai_color);
+      int move = AI_GetBestMove(chessgame.board, chessgame.ai_color);
       
-      int move = GameCore_AIMove(&chessgame, chessgame.ai_color);
-      // if (move >= 0)
-      // {
-      //   chessgame.board[move] = chessgame.ai_color;
-      //   chessgame.cursor_pos = move;
-      //   chessgame.game_result = CheckGameResult(chessgame.board);
-      // }
+      // int move = GameCore_AIMove(&chessgame, chessgame.ai_color);
+      if (move >= 0)
+      {
+        chessgame.board[move] = chessgame.ai_color;
+        chessgame.cursor_pos = move;
+        chessgame.game_result = CheckGameResult(chessgame.board);
+      }
       
       // 使用任务通知通知State任务AI完成
       osThreadFlagsSet(Task_StateHandle, FLAG_AI_DONE);

@@ -3,6 +3,18 @@
 
 #include <stdint.h>
 
+// 棋子颜色定义
+#define EMPTY   0
+#define BLACK   1
+#define WHITE   2
+
+// 任务通知标志位定义
+#define FLAG_AI_START       (1 << 0)
+#define FLAG_AI_DONE        (1 << 1)
+
+#define FLAG_START_SCAN   (1 << 3)  // 通知A
+#define FLAG_STOP_SCAN    (1 << 4)  // 通知B
+
 /* 游戏状态枚举 */
 typedef enum
 {
@@ -35,7 +47,7 @@ typedef enum
 } SelectOption_t;
 
 typedef enum {
-    // CELL_EMPTY = 0, 
+    CELL_EMPTY = 0, 
     CELL_BLACK = 1,
     CELL_WHITE = 2,
     COLOR_BACK = 3,       // 返回主菜单

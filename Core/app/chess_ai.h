@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 
+//最早的史山
 /* ---------- 棋盘格子状态 ---------- */
 #define EMPTY 0
 #define BLACK 1

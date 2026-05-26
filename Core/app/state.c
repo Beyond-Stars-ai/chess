@@ -38,7 +38,7 @@ void EnterGamePlay(void)
     if (chessgame.current_turn == 1)  // AI先手
     {
         current_state = STATE_AI_THINK;
-        osDelay(500);
+        osDelay(200);
         osThreadFlagsSet(Task_AILogicHandle, FLAG_AI_START);
     }
     else  // 玩家先手
@@ -155,19 +155,20 @@ void HandlePlayerMove(KeyEvent_t key)
         case KEY_CONFIRM:
             if (chessgame.board[chessgame.cursor_pos] == EMPTY)
             {
-                if (GameCore_PlayerMove(&chessgame, chessgame.cursor_pos))
-                {
-                    if (chessgame.game_result != RESULT_ONGOING)
-                    {
-                        current_state = STATE_GAME_OVER;
-                    }
-                    else
-                    {
-                        current_state = STATE_AI_THINK;
-                        osDelay(500);
-                        osThreadFlagsSet(Task_AILogicHandle, FLAG_AI_START);
-                    }
-                }
+            chessgame.board[chessgame.cursor_pos] = chessgame.player_color;
+            chessgame.game_result = CheckGameResult(chessgame.board);
+                
+            if (chessgame.game_result != RESULT_ONGOING)
+            {
+            current_state = STATE_GAME_OVER;
+            }
+            else
+            {
+            current_state = STATE_AI_THINK;
+            osDelay(200);
+            osThreadFlagsSet(Task_AILogicHandle, FLAG_AI_START);
+            }
+                
             }
             break;
             
