@@ -11,13 +11,10 @@ typedef enum {
 } GameMode_t;
 
 /* 游戏核心API */
-void GameCore_Init(GameCtrl_t *game, GameMode_t mode);
 int GameCore_PlayerMove(GameCtrl_t *game, uint8_t position);
 int  GameCore_AIMove(GameCtrl_t *game, uint8_t ai_color);
-void GameCore_Reset(GameCtrl_t *game);
 
 /* 获取当前游戏模式 */
-GameMode_t GameCore_GetMode(void);
 void GameCore_SetMode(GameMode_t mode);
 
 #endif /* __GAME_CORE_H */

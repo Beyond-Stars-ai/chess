@@ -8,20 +8,6 @@ void GameCore_SetMode(GameMode_t mode)
     current_mode = mode;
 }
 
-GameMode_t GameCore_GetMode(void)
-{
-    return current_mode;
-}
-
-void GameCore_Init(GameCtrl_t *game, GameMode_t mode)
-{
-    current_mode = mode;
-    BoardInit(game->board);
-    game->cursor_pos = 4;
-    game->current_turn = 0;
-    game->game_result = GAME_ONGOING;
-}
-
 int GameCore_PlayerMove(GameCtrl_t *game, uint8_t position)
 {
     if (game->board[position] != EMPTY) return 0;
@@ -54,11 +40,4 @@ int GameCore_AIMove(GameCtrl_t *game, uint8_t ai_color)
     }
     
     return move;
-}
-
-void GameCore_Reset(GameCtrl_t *game)
-{
-    BoardInit(game->board);
-    game->cursor_pos = 4;
-    game->game_result = GAME_ONGOING;
 }
