@@ -33,6 +33,7 @@
 #include "chess_ai.h"
 #include "sensors.h"
 #include "ui.h"
+#include "game_core.h"
 
 #include "game_types.h" 
 /* USER CODE END Includes */
@@ -219,6 +220,7 @@ void HandleMainMenu(KeyEvent_t key)
         case KEY_CONFIRM:
             if (main_option == MAIN_GAME)
             {
+                GameCore_SetMode(GAME_MODE_PLAY);
                 current_state = STATE_SELECT_FIRST;
                 EnterSelectFirst();
             }
@@ -229,7 +231,9 @@ void HandleMainMenu(KeyEvent_t key)
             }
             else if (main_option == MAIN_TEXT)
             {
-                // 预留Place功能
+                GameCore_SetMode(GAME_MODE_TEXT);
+                current_state = STATE_SELECT_FIRST;
+                EnterSelectFirst();
             }
             break;
             
@@ -301,9 +305,10 @@ void HandlePlayerMove(KeyEvent_t key)
         case KEY_CONFIRM:
             if (chessgame.board[chessgame.cursor_pos] == EMPTY)
             {
-                chessgame.board[chessgame.cursor_pos] = chessgame.player_color;
-                chessgame.game_result = CheckGameResult(chessgame.board);
-                
+                // chessgame.board[chessgame.cursor_pos] = chessgame.player_color;
+                // chessgame.game_result = CheckGameResult(chessgame.board);
+              if (GameCore_PlayerMove(&chessgame, chessgame.cursor_pos))
+              {
                 if (chessgame.game_result != GAME_ONGOING)
                 {
                     current_state = STATE_GAME_OVER;
@@ -313,6 +318,7 @@ void HandlePlayerMove(KeyEvent_t key)
                     current_state = STATE_AI_THINK;
                     osThreadFlagsSet(Task_AILogicHandle, FLAG_AI_START);
                 }
+              }
             }
             break;
             
@@ -780,14 +786,15 @@ void StartAILogic(void *argument)
     
     if ((flags & FLAG_AI_START) && current_state == STATE_AI_THINK)
     {
-      int move = AI_GetBestMove(chessgame.board, chessgame.ai_color);
+      // int move = AI_GetBestMove(chessgame.board, chessgame.ai_color);
       
-      if (move >= 0)
-      {
-        chessgame.board[move] = chessgame.ai_color;
-        chessgame.cursor_pos = move;
-        chessgame.game_result = CheckGameResult(chessgame.board);
-      }
+      int move = GameCore_AIMove(&chessgame, chessgame.ai_color);
+      // if (move >= 0)
+      // {
+      //   chessgame.board[move] = chessgame.ai_color;
+      //   chessgame.cursor_pos = move;
+      //   chessgame.game_result = CheckGameResult(chessgame.board);
+      // }
       
       // 使用任务通知通知State任务AI完成
       osThreadFlagsSet(Task_StateHandle, FLAG_AI_DONE);
