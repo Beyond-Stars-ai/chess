@@ -45,28 +45,9 @@ uint8_t sensors[9]; // 传感器数据
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
 AppState_t current_state = STATE_MAIN_MENU;
 GameCtrl_t chessgame;
-
-typedef enum
-{
-    MAIN_PLACE = 0,
-    MAIN_GAME = 1,
-    MAIN_TEXT = 2, 
-} MainOption_t;
-
-MainOption_t main_option = MAIN_PLACE;
-
-typedef enum
-{
-    SELECT_AI_FIRST = 0,    // AI先手
-    SELECT_PLAYER_FIRST,    // 玩家先手  
-    SELECT_BACK             // 返回主菜单
-} SelectOption_t;
-
-SelectOption_t select_option = SELECT_AI_FIRST;
-
+UIOptions_t ui_options;
 
 // 任务通知标志位定义
 #define FLAG_AI_START       (1 << 0)  // 通知AI开始思考
@@ -180,7 +161,7 @@ void EnterSelectFirst(void)
 {
     chessgame.ai_color = BLACK;
     chessgame.player_color = WHITE;
-    select_option = SELECT_AI_FIRST;
+    ui_options.select_option = SELECT_AI_FIRST;
 }
 
 void EnterGamePlay(void)
@@ -188,11 +169,12 @@ void EnterGamePlay(void)
     BoardInit(chessgame.board);
     chessgame.cursor_pos = 4;
     chessgame.current_turn = (chessgame.ai_color == BLACK) ? 1 : 0;
-    chessgame.game_result = GAME_ONGOING;
+    chessgame.game_result = RESULT_ONGOING;
     
     if (chessgame.current_turn == 1)  // AI先手
     {
         current_state = STATE_AI_THINK;
+        osDelay(1000);
         osThreadFlagsSet(Task_AILogicHandle, FLAG_AI_START);
     }
     else  // 玩家先手
@@ -208,28 +190,28 @@ void HandleMainMenu(KeyEvent_t key)
     switch (key)
     {
         case KEY_UP:
-            if (main_option > MAIN_PLACE)
-                main_option--;
+            if (ui_options.main_option > MAIN_PLACE)
+                ui_options.main_option--;
             break;
             
         case KEY_DOWN:
-            if (main_option < MAIN_TEXT)
-                main_option++;
+            if (ui_options.main_option < MAIN_TEXT)
+                ui_options.main_option++;
             break;
             
         case KEY_CONFIRM:
-            if (main_option == MAIN_GAME)
+            if (ui_options.main_option == MAIN_GAME)
             {
                 GameCore_SetMode(GAME_MODE_PLAY);
                 current_state = STATE_SELECT_FIRST;
                 EnterSelectFirst();
             }
-            else if (main_option == MAIN_PLACE)
+            else if (ui_options.main_option == MAIN_PLACE)
             {
                 // current_state = STATE_TEXT_MENU;
                 // 可以在这里初始化Text相关变量
             }
-            else if (main_option == MAIN_TEXT)
+            else if (ui_options.main_option == MAIN_TEXT)
             {
                 GameCore_SetMode(GAME_MODE_TEXT);
                 current_state = STATE_SELECT_FIRST;
@@ -247,33 +229,33 @@ void HandleSelectFirst(KeyEvent_t key)
     switch (key)
     {
         case KEY_UP:
-            if (select_option > SELECT_AI_FIRST)
-                select_option--;
+            if (ui_options.select_option > SELECT_AI_FIRST)
+                ui_options.select_option--;
             break;
             
         case KEY_DOWN:
-            if (select_option < SELECT_BACK)
-                select_option++;
+            if (ui_options.select_option < SELECT_BACK)
+                ui_options.select_option++;
             break;
             
         case KEY_CONFIRM:
-            if (select_option == SELECT_AI_FIRST)
+            if (ui_options.select_option == SELECT_AI_FIRST)
             {
                 chessgame.ai_color = BLACK;
                 chessgame.player_color = WHITE;
                 EnterGamePlay();
             }
-            else if (select_option == SELECT_PLAYER_FIRST)
+            else if (ui_options.select_option == SELECT_PLAYER_FIRST)
             {
                 chessgame.ai_color = WHITE;
                 chessgame.player_color = BLACK;
                 EnterGamePlay();
             }
-            else if (select_option == SELECT_BACK)
+            else if (ui_options.select_option == SELECT_BACK)
             {
                 current_state = STATE_MAIN_MENU;
-                main_option = MAIN_GAME;
-                select_option = SELECT_AI_FIRST;  // 重置选择
+                ui_options.main_option = MAIN_GAME;
+                ui_options.select_option = SELECT_AI_FIRST;  // 重置选择
             }
             break;
             
@@ -309,13 +291,14 @@ void HandlePlayerMove(KeyEvent_t key)
                 // chessgame.game_result = CheckGameResult(chessgame.board);
               if (GameCore_PlayerMove(&chessgame, chessgame.cursor_pos))
               {
-                if (chessgame.game_result != GAME_ONGOING)
+                if (chessgame.game_result != RESULT_ONGOING)
                 {
                     current_state = STATE_GAME_OVER;
                 }
                 else
                 {
                     current_state = STATE_AI_THINK;
+                    osDelay(1000);
                     osThreadFlagsSet(Task_AILogicHandle, FLAG_AI_START);
                 }
               }
@@ -338,10 +321,10 @@ void HandleGameOver(KeyEvent_t key)
             chessgame.ai_color = BLACK;            // 默认AI黑棋
             chessgame.player_color = WHITE;        // 默认玩家白棋
             chessgame.current_turn = 0;            // 默认玩家先手
-            chessgame.game_result = GAME_ONGOING;  // 重置结果
+            chessgame.game_result = RESULT_ONGOING;  // 重置结果
             
             current_state = STATE_MAIN_MENU;
-            main_option = MAIN_GAME;
+            ui_options.main_option = MAIN_GAME;
             break;
             
         default:
@@ -706,7 +689,7 @@ void StartState(void *argument)
     flags = osThreadFlagsWait(FLAG_AI_DONE, osFlagsWaitAny, 0);
     if (flags & FLAG_AI_DONE)
     {
-        if (chessgame.game_result != GAME_ONGOING)
+        if (chessgame.game_result != RESULT_ONGOING)
             current_state = STATE_GAME_OVER;
         else
             current_state = STATE_PLAYER_MOVE;
@@ -845,11 +828,11 @@ void StartUI(void *argument)
     switch (current_state)
     {
         case STATE_MAIN_MENU:
-            DrawMainMenu(main_option);
+            DrawMainMenu(ui_options.main_option);
             break;
             
         case STATE_SELECT_FIRST:
-            DrawSelectFirstMenu(select_option);
+            DrawSelectFirstMenu(ui_options.select_option);
             break;
             
         case STATE_GAME_OVER:

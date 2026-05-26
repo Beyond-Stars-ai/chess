@@ -127,13 +127,13 @@ void DrawGameOver(void)
     }
     
     // 显示结果文字
-    if (chessgame.game_result == GAME_DRAW)
+    if (chessgame.game_result == RESULT_DRAW)
         OLED_ShowString(0, 0, "Draw!", OLED_8X16);
-    else if ((chessgame.game_result == GAME_BLACK_WIN && chessgame.ai_color == BLACK) ||
-             (chessgame.game_result == GAME_WHITE_WIN && chessgame.ai_color == WHITE))
+    else if ((chessgame.game_result == RESULT_BLACK_WIN && chessgame.ai_color == BLACK) ||
+             (chessgame.game_result == RESULT_WHITE_WIN && chessgame.ai_color == WHITE))
         OLED_ShowString(0, 0, "AI Win!", OLED_8X16);
-    else if ((chessgame.game_result == GAME_BLACK_WIN && chessgame.player_color == BLACK) ||
-             (chessgame.game_result == GAME_WHITE_WIN && chessgame.player_color == WHITE))
+    else if ((chessgame.game_result == RESULT_BLACK_WIN && chessgame.player_color == BLACK) ||
+             (chessgame.game_result == RESULT_WHITE_WIN && chessgame.player_color == WHITE))
         OLED_ShowString(0, 0, "Human Win!", OLED_8X16);
     
     OLED_Update();
