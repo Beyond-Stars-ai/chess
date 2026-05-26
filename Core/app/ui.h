@@ -9,6 +9,7 @@
 void DrawGameBoard(void);
 void DrawMainMenu(uint8_t main_option);
 void DrawSelectFirstMenu(uint8_t select_option);
+void DrawColorSelectMenu(uint8_t color_option);
 void DrawGameOver(void);
 
 #endif /* __UI_H */

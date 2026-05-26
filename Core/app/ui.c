@@ -35,7 +35,7 @@ void DrawGameBoard(void)
     OLED_DrawLine(4, 44, 121, 44);
     
     // 绘制光标 - 只在玩家移动时显示
-    if (current_state == STATE_PLAYER_MOVE)
+    if (current_state == STATE_PLAYER_MOVE || current_state == STATE_PLACE_SELECT)
     {
         int row = chessgame.cursor_pos / 3, col = chessgame.cursor_pos % 3;
         int x0 = 4 + col * 39;
@@ -95,6 +95,16 @@ void DrawSelectFirstMenu(uint8_t select_option)
     OLED_Update();
 }
 
+void DrawColorSelectMenu(uint8_t color_option)
+{
+    OLED_Clear();
+    OLED_ShowString(0, 0, "Select Color:", OLED_8X16);
+    OLED_ShowString(0, 20, color_option == CELL_BLACK ? "-> Black" : "   Black", OLED_8X16);
+    OLED_ShowString(0, 35, color_option == CELL_WHITE ? "-> White" : "   White", OLED_8X16);
+    OLED_ShowString(0, 50, color_option == BACK_SELECT ? "-> Back" : "   Back", OLED_8X16);
+    OLED_Update();
+}
+
 /**
   * @brief  Draw the game over screen with result
   * @note   Uses DrawGameBoard() to show final board state
@@ -121,9 +131,9 @@ void DrawGameOver(void)
         int cy = 16 + row * 14 + 7;   // 格子中心y
         
         if (chessgame.board[i] == BLACK)
-            OLED_DrawCircle(cx, cy, 5, 1);  // 填充圆
+            OLED_DrawCircle(cx, cy, 5, 0);  // 填充圆 //为什么改不了
         else
-            OLED_DrawCircle(cx, cy, 5, 0);  // 空心圆
+            OLED_DrawCircle(cx, cy, 5, 1);  // 空心圆
     }
     
     // 显示结果文字

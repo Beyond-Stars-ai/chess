@@ -156,6 +156,9 @@ void HandleSelectFirst(KeyEvent_t key);
 void HandlePlayerMove(KeyEvent_t key);
 void HandleGameOver(KeyEvent_t key);
 
+void HandleColorSelect(KeyEvent_t key);
+void HandlePlaceSelect(KeyEvent_t key);
+
 // 状态入口函数（进入状态时调用）
 void EnterSelectFirst(void)
 {
@@ -174,7 +177,7 @@ void EnterGamePlay(void)
     if (chessgame.current_turn == 1)  // AI先手
     {
         current_state = STATE_AI_THINK;
-        osDelay(1000);
+        osDelay(500);
         osThreadFlagsSet(Task_AILogicHandle, FLAG_AI_START);
     }
     else  // 玩家先手
@@ -183,7 +186,10 @@ void EnterGamePlay(void)
     }
 }
 
-// ========== 状态处理函数 ==========
+void EnterColorSelect(void)
+{
+    ui_options.color_option = CELL_BLACK;
+}
 
 void HandleMainMenu(KeyEvent_t key)
 {
@@ -208,8 +214,8 @@ void HandleMainMenu(KeyEvent_t key)
             }
             else if (ui_options.main_option == MAIN_PLACE)
             {
-                // current_state = STATE_TEXT_MENU;
-                // 可以在这里初始化Text相关变量
+                current_state = STATE_COLOR_SELECT;
+                EnterColorSelect();
             }
             else if (ui_options.main_option == MAIN_TEXT)
             {
@@ -298,7 +304,7 @@ void HandlePlayerMove(KeyEvent_t key)
                 else
                 {
                     current_state = STATE_AI_THINK;
-                    osDelay(1000);
+                    osDelay(500);
                     osThreadFlagsSet(Task_AILogicHandle, FLAG_AI_START);
                 }
               }
@@ -332,6 +338,81 @@ void HandleGameOver(KeyEvent_t key)
     }
 }
 
+// ========== 颜色选择处理（放置棋子） ==========
+
+void HandleColorSelect(KeyEvent_t key)
+{
+    switch (key)
+    {
+        case KEY_UP:
+            if (ui_options.color_option > CELL_BLACK)
+                ui_options.color_option--;
+            break;
+            
+        case KEY_DOWN:
+            if (ui_options.color_option < BACK_SELECT)
+                ui_options.color_option++;
+            break;
+            
+        case KEY_CONFIRM:
+            if (ui_options.color_option == BACK_SELECT)
+            {
+                // 返回主菜单
+                current_state = STATE_MAIN_MENU;
+                ui_options.main_option = MAIN_PLACE;
+            }
+            else
+            {
+                // 进入位置选择（和 STATE_PLAYER_MOVE 共用 DrawGameBoard）
+                current_state = STATE_PLACE_SELECT;
+                chessgame.cursor_pos = 4;  // 光标居中
+            }
+            break;
+            
+        default:
+            break;
+    }
+}
+
+// ========== 位置选择处理（放置棋子 - 无回合概念） ==========
+// 和 HandlePlayerMove 共用同一个棋盘界面！
+
+void HandlePlaceSelect(KeyEvent_t key)
+{
+    switch (key)
+    {
+        case KEY_UP:
+            if (chessgame.cursor_pos >= 3) chessgame.cursor_pos -= 3;
+            break;
+            
+        case KEY_DOWN:
+            if (chessgame.cursor_pos <= 5) chessgame.cursor_pos += 3;
+            break;
+            
+        case KEY_LEFT:
+            if (chessgame.cursor_pos % 3 != 0) chessgame.cursor_pos--;
+            break;
+            
+        case KEY_RIGHT:
+            if (chessgame.cursor_pos % 3 != 2) chessgame.cursor_pos++;
+            break;
+            
+        case KEY_CONFIRM:
+            // 根据选择的颜色放置棋子
+            CellState_t color = (ui_options.color_option == CELL_BLACK) ? CELL_BLACK : CELL_WHITE;
+            chessgame.board[chessgame.cursor_pos] = color;
+            
+            // 放置成功后返回主菜单
+            // current_state = STATE_MAIN_MENU;
+            // ui_options.main_option = MAIN_PLACE;
+            current_state = STATE_COLOR_SELECT;
+            ui_options.color_option = CELL_BLACK;  
+            break;
+            
+        default:
+            break;
+    }
+}
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -703,6 +784,14 @@ void StartState(void *argument)
             case STATE_MAIN_MENU:
                 HandleMainMenu(key_evt);
                 break;
+
+            case STATE_COLOR_SELECT:
+                HandleColorSelect(key_evt);
+                break;
+
+            case STATE_PLACE_SELECT:
+                HandlePlaceSelect(key_evt);
+                break;
                 
             case STATE_SELECT_FIRST:
                 HandleSelectFirst(key_evt);
@@ -831,6 +920,14 @@ void StartUI(void *argument)
             DrawMainMenu(ui_options.main_option);
             break;
             
+        case STATE_COLOR_SELECT:
+            DrawColorSelectMenu(ui_options.color_option);
+            break;
+
+        case STATE_PLACE_SELECT:
+            DrawGameBoard();
+            break;
+
         case STATE_SELECT_FIRST:
             DrawSelectFirstMenu(ui_options.select_option);
             break;
