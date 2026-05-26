@@ -32,6 +32,9 @@
 #include "key.h"
 #include "chess_ai.h"
 #include "sensors.h"
+#include "ui.h"
+
+#include "game_types.h" 
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -42,17 +45,8 @@ uint8_t sensors[9]; // 传感器数据
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 
-typedef enum
-{
-    STATE_MAIN_MENU,        // 主菜单
-    STATE_SELECT_FIRST,     // 选先后手
-    // STATE_TEXT_MENU,     // Text功能菜单  <-- 新增
-    STATE_AI_THINK,         // AI思考
-    STATE_PLAYER_MOVE,      // 玩家移动光标/落子
-    STATE_GAME_OVER,        // 游戏结束
-} AppState_t;
-
 AppState_t current_state = STATE_MAIN_MENU;
+GameCtrl_t chessgame;
 
 typedef enum
 {
@@ -72,18 +66,6 @@ typedef enum
 
 SelectOption_t select_option = SELECT_AI_FIRST;
 
-// 游戏控制块
-typedef struct
-{
-    uint8_t board[9];           // 棋盘
-    uint8_t cursor_pos;         // 光标位置 0-8
-    uint8_t ai_color;           // AI颜色
-    uint8_t player_color;       // 玩家颜色
-    uint8_t current_turn;       // 0=玩家, 1=AI
-    int game_result;            // GAME_ONGOING/BLACK_WIN/WHITE_WIN/DRAW
-} GameCtrl_t;
-
-GameCtrl_t chessgame;
 
 // 任务通知标志位定义
 #define FLAG_AI_START       (1 << 0)  // 通知AI开始思考
@@ -186,58 +168,6 @@ void StartReadKEY(void *argument);
 void StartDebugTask(void *argument);
 
 /* USER CODE BEGIN PFP */
-void DrawGameBoard(void)
-{
-    OLED_Clear(); // 先清屏
-    
-    // 只在非 GAME_OVER 状态下显示顶部文字
-    if (current_state == STATE_AI_THINK)
-    {
-        OLED_ShowString(0, 0, "AI Turn", OLED_8X16);
-    }
-    else if (current_state == STATE_PLAYER_MOVE)
-    {
-        OLED_ShowString(0, 0, "Hu Turn", OLED_8X16);
-    }
-    // STATE_GAME_OVER 时不绘制任何顶部文字，由外层处理
-    
-    // 绘制3x3棋盘线
-    OLED_DrawLine(43, 16, 43, 60);
-    OLED_DrawLine(82, 16, 82, 60);
-    OLED_DrawLine(4, 30, 121, 30);
-    OLED_DrawLine(4, 44, 121, 44);
-    
-    // 绘制光标 - 只在玩家移动时显示
-    if (current_state == STATE_PLAYER_MOVE)
-    {
-        int row = chessgame.cursor_pos / 3, col = chessgame.cursor_pos % 3;
-        int x0 = 4 + col * 39;
-        int y0 = 16 + row * 14;
-     
-        // 画方框表示光标
-        OLED_DrawLine(x0, y0, x0 + 38, y0);         // 上边
-        OLED_DrawLine(x0, y0, x0, y0 + 13);         // 左边
-        OLED_DrawLine(x0 + 38, y0, x0 + 38, y0 + 13); // 右边
-        OLED_DrawLine(x0, y0 + 13, x0 + 38, y0 + 13); // 下边
-    }
-    
-    // 绘制棋子
-    for (int i = 0; i < 9; i++)
-    {
-        if (chessgame.board[i] == EMPTY) continue;
-        
-        int row = i / 3, col = i % 3;
-        int cx = 4 + col * 39 + 20;  // 格子中心x
-        int cy = 16 + row * 14 + 7;   // 格子中心y
-        
-        if (chessgame.board[i] == BLACK)
-            OLED_DrawCircle(cx, cy, 5, 1);  // 填充圆
-        else
-            OLED_DrawCircle(cx, cy, 5, 0);  // 空心圆
-    }
-    OLED_Update();
-}
-
 // 状态处理函数声明
 void HandleMainMenu(KeyEvent_t key);
 void HandleSelectFirst(KeyEvent_t key);
@@ -908,33 +838,21 @@ void StartUI(void *argument)
     switch (current_state)
     {
         case STATE_MAIN_MENU:
-            OLED_ShowString(0, 0, "=== Chess Robot ===", OLED_8X16);
-            OLED_ShowString(0, 20, main_option == MAIN_PLACE ? "-> Place Chess" : "   Place Chess", OLED_8X16);
-            OLED_ShowString(0, 35, main_option == MAIN_GAME ? "-> Play Game" : "   Play Game", OLED_8X16);
-            OLED_ShowString(0, 50, main_option == MAIN_TEXT ? "-> Text" : "   Text", OLED_8X16);
+            DrawMainMenu(main_option);
             break;
             
         case STATE_SELECT_FIRST:
-            OLED_ShowString(0, 0, "Select First:", OLED_8X16);
-            OLED_ShowString(0, 20, select_option == SELECT_AI_FIRST ? "-> AI First" : "   AI First", OLED_8X16);
-            OLED_ShowString(0, 35, select_option == SELECT_PLAYER_FIRST ? "-> Player First" : "   Player First", OLED_8X16);
-            OLED_ShowString(0, 50, select_option == SELECT_BACK ? "-> Back" : "   Back", OLED_8X16);
+            DrawSelectFirstMenu(select_option);
             break;
             
         case STATE_GAME_OVER:
-            // OLED_ShowString(0, 0, "Game Over", OLED_8X16);
-            DrawGameBoard();
-            if (chessgame.game_result == GAME_DRAW)
-                OLED_ShowString(0, 0, "Draw!", OLED_8X16);
-            else if ((chessgame.game_result == GAME_BLACK_WIN && chessgame.ai_color == BLACK) ||
-                     (chessgame.game_result == GAME_WHITE_WIN && chessgame.ai_color == WHITE))
-                OLED_ShowString(0, 0, "AI Win!", OLED_8X16);
-            else if ((chessgame.game_result == GAME_BLACK_WIN && chessgame.player_color == BLACK) ||
-                     (chessgame.game_result == GAME_WHITE_WIN && chessgame.player_color == WHITE))
-                OLED_ShowString(0, 0, "Human Win!", OLED_8X16);
+            DrawGameOver();
             break;
             
         case STATE_AI_THINK:
+            DrawGameBoard();
+            break;
+            
         case STATE_PLAYER_MOVE:
             DrawGameBoard();
             break;

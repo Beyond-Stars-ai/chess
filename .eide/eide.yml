@@ -33,6 +33,7 @@ targets:
         - Drivers/CMSIS/Include
         - Core/bsp
         - Core/app
+        - Core/type
       libList: []
     excludeList: []
     toolchain: GCC
