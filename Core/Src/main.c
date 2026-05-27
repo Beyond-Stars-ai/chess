@@ -565,36 +565,38 @@ void StartState(void *argument)
 void StartSensorScan(void *argument)
 {
     /* USER CODE BEGIN StartSensorScan */
-    uint32_t flags;
+    // uint32_t flags;
     
     for (;;)
     {
-        // 1. 阻塞等待任何通知（默认阻塞态）
-        flags = osThreadFlagsWait(FLAG_START_SCAN | FLAG_STOP_SCAN, osFlagsWaitAny, osWaitForever);
+      read_sensors(sensors);
+      osDelay(300);
+    //     // 1. 阻塞等待任何通知（默认阻塞态）
+    //     flags = osThreadFlagsWait(FLAG_START_SCAN | FLAG_STOP_SCAN, osFlagsWaitAny, osWaitForever);
 
-        if (flags & FLAG_START_SCAN)
-        {
-            read_sensors(sensors_Start);
-            while (1)
-            {
-                // 等待 300ms，同时监听停止标志（非阻塞等待，超时300ms）
-                flags = osThreadFlagsWait(FLAG_STOP_SCAN, osFlagsWaitAny, 300);
+    //     if (flags & FLAG_START_SCAN)
+    //     {
+    //         read_sensors(sensors_Start);
+    //         while (1)
+    //         {
+    //             // 等待 300ms，同时监听停止标志（非阻塞等待，超时300ms）
+    //             flags = osThreadFlagsWait(FLAG_STOP_SCAN, osFlagsWaitAny, 300);
                 
-                if (flags & FLAG_STOP_SCAN)
-                {
-                    // settlement_function();   // 你的结算函数
-                    break;                  // 退出采样循环，回到外层阻塞态
-                }
-                else
-                {
-                    read_sensors(sensors);   // 超时（300ms内无停止标志）：执行一次周期性采样
-                }
-            }
-        }
-        else if (flags & FLAG_STOP_SCAN)
-        {
-            continue;
-        }
+    //             if (flags & FLAG_STOP_SCAN)
+    //             {
+    //                 // settlement_function();   // 你的结算函数
+    //                 break;                  // 退出采样循环，回到外层阻塞态
+    //             }
+    //             else
+    //             {
+    //                 read_sensors(sensors);   // 超时（300ms内无停止标志）：执行一次周期性采样
+    //             }
+    //         }
+    //     }
+    //     else if (flags & FLAG_STOP_SCAN)
+    //     {
+    //         continue;
+    //     }
     }
     /* USER CODE END StartSensorScan */
 }
@@ -620,7 +622,6 @@ void StartAILogic(void *argument)
     {
       int move = AI_GetBestMove(chessgame.board, chessgame.ai_color);
       
-      // int move = GameCore_AIMove(&chessgame, chessgame.ai_color);
       if (move >= 0)
       {
         chessgame.board[move] = chessgame.ai_color;

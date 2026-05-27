@@ -1,8 +1,8 @@
 #include "state.h"
 // #include "game_core.h"
-#include "ui.h"
-#include "cmsis_os.h"
 #include "chess_ai.h"
+#include "cmsis_os.h"
+#include "ui.h"
 
 // 外部全局变量声明（实际定义在 main.c）
 extern AppState_t current_state;
@@ -34,16 +34,34 @@ void EnterGamePlay(void)
     chessgame.cursor_pos = 4;
     chessgame.current_turn = (chessgame.ai_color == BLACK) ? 1 : 0;
     chessgame.game_result = RESULT_ONGOING;
-    
-    if (chessgame.current_turn == 1)  // AI先手
+
+    if (chessgame.game_mode == GAME_MODE_PLAY)
     {
-        current_state = STATE_AI_THINK;
-        osDelay(200);
-        osThreadFlagsSet(Task_AILogicHandle, FLAG_AI_START);
+        if (chessgame.current_turn == 1) // AI先手
+        {
+            current_state = STATE_AI_THINK;
+            osDelay(500);
+            osThreadFlagsSet(Task_AILogicHandle, FLAG_AI_START);
+        }
+        else // 玩家先手
+        {
+            current_state = STATE_PLAYER_MOVE;
+        }
     }
-    else  // 玩家先手
+
+    else if (chessgame.game_mode == GAME_MODE_TEXT)
     {
-        current_state = STATE_PLAYER_MOVE;
+
+        if (chessgame.current_turn == 1) // AI先手
+        {
+            current_state = STATE_AI_THINK;
+            osDelay(200);
+            osThreadFlagsSet(Task_AILogicHandle, FLAG_AI_START);
+        }
+        else // 玩家先手
+        {
+            current_state = STATE_PLAYER_MOVE;
+        }
     }
 }
 
@@ -53,39 +71,38 @@ void HandleMainMenu(KeyEvent_t key)
 {
     switch (key)
     {
-        case KEY_UP:
-            if (ui_options.main_option > MAIN_PLACE)
-                ui_options.main_option--;
-            break;
-            
-        case KEY_DOWN:
-            if (ui_options.main_option < MAIN_TEXT)
-                ui_options.main_option++;
-            break;
-            
-        case KEY_CONFIRM:
-            if (ui_options.main_option == MAIN_GAME)
-            {
-                // GameCore_SetMode(GAME_MODE_PLAY);
-                current_state = STATE_SELECT_FIRST;
-                chessgame.game_mode = GAME_MODE_PLAY;
-                EnterSelectFirst();
-            }
-            else if (ui_options.main_option == MAIN_PLACE)
-            {
-                current_state = STATE_COLOR_SELECT;
-                EnterColorSelect();
-            }
-            else if (ui_options.main_option == MAIN_TEXT)
-            {
-                current_state = STATE_SELECT_FIRST;
-                chessgame.game_mode = GAME_MODE_TEXT;
-                EnterSelectFirst();
-            }
-            break;
-            
-        default:
-            break;
+    case KEY_UP:
+        if (ui_options.main_option > MAIN_PLACE)
+            ui_options.main_option--;
+        break;
+
+    case KEY_DOWN:
+        if (ui_options.main_option < MAIN_TEXT)
+            ui_options.main_option++;
+        break;
+
+    case KEY_CONFIRM:
+        if (ui_options.main_option == MAIN_GAME)
+        {
+            current_state = STATE_SELECT_FIRST;
+            chessgame.game_mode = GAME_MODE_PLAY;
+            EnterSelectFirst();
+        }
+        else if (ui_options.main_option == MAIN_PLACE)
+        {
+            current_state = STATE_COLOR_SELECT;
+            EnterColorSelect();
+        }
+        else if (ui_options.main_option == MAIN_TEXT)
+        {
+            current_state = STATE_SELECT_FIRST;
+            chessgame.game_mode = GAME_MODE_TEXT;
+            EnterSelectFirst();
+        }
+        break;
+
+    default:
+        break;
     }
 }
 
@@ -95,39 +112,39 @@ void HandleSelectFirst(KeyEvent_t key)
 {
     switch (key)
     {
-        case KEY_UP:
-            if (ui_options.select_option > SELECT_AI_FIRST)
-                ui_options.select_option--;
-            break;
-            
-        case KEY_DOWN:
-            if (ui_options.select_option < SELECT_BACK)
-                ui_options.select_option++;
-            break;
-            
-        case KEY_CONFIRM:
-            if (ui_options.select_option == SELECT_AI_FIRST)
-            {
-                chessgame.ai_color = BLACK;
-                chessgame.player_color = WHITE;
-                EnterGamePlay();
-            }
-            else if (ui_options.select_option == SELECT_PLAYER_FIRST)
-            {
-                chessgame.ai_color = WHITE;
-                chessgame.player_color = BLACK;
-                EnterGamePlay();
-            }
-            else if (ui_options.select_option == SELECT_BACK)
-            {
-                current_state = STATE_MAIN_MENU;
-                ui_options.main_option = MAIN_GAME;
-                ui_options.select_option = SELECT_AI_FIRST;
-            }
-            break;
-            
-        default:
-            break;
+    case KEY_UP:
+        if (ui_options.select_option > SELECT_AI_FIRST)
+            ui_options.select_option--;
+        break;
+
+    case KEY_DOWN:
+        if (ui_options.select_option < SELECT_BACK)
+            ui_options.select_option++;
+        break;
+
+    case KEY_CONFIRM:
+        if (ui_options.select_option == SELECT_AI_FIRST)
+        {
+            chessgame.ai_color = BLACK;
+            chessgame.player_color = WHITE;
+            EnterGamePlay();
+        }
+        else if (ui_options.select_option == SELECT_PLAYER_FIRST)
+        {
+            chessgame.ai_color = WHITE;
+            chessgame.player_color = BLACK;
+            EnterGamePlay();
+        }
+        else if (ui_options.select_option == SELECT_BACK)
+        {
+            current_state = STATE_MAIN_MENU;
+            ui_options.main_option = MAIN_GAME;
+            ui_options.select_option = SELECT_AI_FIRST;
+        }
+        break;
+
+    default:
+        break;
     }
 }
 
@@ -135,46 +152,100 @@ void HandleSelectFirst(KeyEvent_t key)
 
 void HandlePlayerMove(KeyEvent_t key)
 {
-    switch (key)
+    if (chessgame.game_mode == GAME_MODE_PLAY)
     {
+        switch (key)
+        {
         case KEY_UP:
-            if (chessgame.cursor_pos >= 3) chessgame.cursor_pos -= 3;
+            if (chessgame.cursor_pos >= 3)
+                chessgame.cursor_pos -= 3;
             break;
-            
+
         case KEY_DOWN:
-            if (chessgame.cursor_pos <= 5) chessgame.cursor_pos += 3;
+            if (chessgame.cursor_pos <= 5)
+                chessgame.cursor_pos += 3;
             break;
-            
+
         case KEY_LEFT:
-            if (chessgame.cursor_pos % 3 != 0) chessgame.cursor_pos--;
+            if (chessgame.cursor_pos % 3 != 0)
+                chessgame.cursor_pos--;
             break;
-            
+
         case KEY_RIGHT:
-            if (chessgame.cursor_pos % 3 != 2) chessgame.cursor_pos++;
+            if (chessgame.cursor_pos % 3 != 2)
+                chessgame.cursor_pos++;
             break;
-            
+
         case KEY_CONFIRM:
             if (chessgame.board[chessgame.cursor_pos] == EMPTY)
             {
-            chessgame.board[chessgame.cursor_pos] = chessgame.player_color;
-            chessgame.game_result = CheckGameResult(chessgame.board);
-                
-            if (chessgame.game_result != RESULT_ONGOING)
-            {
-            current_state = STATE_GAME_OVER;
-            }
-            else
-            {
-            current_state = STATE_AI_THINK;
-            osDelay(200);
-            osThreadFlagsSet(Task_AILogicHandle, FLAG_AI_START);
-            }
-                
+                osDelay(500);
+                chessgame.board[chessgame.cursor_pos] = chessgame.player_color;
+                chessgame.game_result = CheckGameResult(chessgame.board);
+
+                if (chessgame.game_result != RESULT_ONGOING)
+                {
+                    current_state = STATE_GAME_OVER;
+                }
+                else
+                {
+                    current_state = STATE_AI_THINK;
+                    osDelay(500);
+                    osThreadFlagsSet(Task_AILogicHandle, FLAG_AI_START);
+                }
             }
             break;
-            
+
         default:
             break;
+        }
+    }
+    else if (chessgame.game_mode == GAME_MODE_TEXT)
+    {
+        switch (key)
+        {
+        case KEY_UP:
+            if (chessgame.cursor_pos >= 3)
+                chessgame.cursor_pos -= 3;
+            break;
+
+        case KEY_DOWN:
+            if (chessgame.cursor_pos <= 5)
+                chessgame.cursor_pos += 3;
+            break;
+
+        case KEY_LEFT:
+            if (chessgame.cursor_pos % 3 != 0)
+                chessgame.cursor_pos--;
+            break;
+
+        case KEY_RIGHT:
+            if (chessgame.cursor_pos % 3 != 2)
+                chessgame.cursor_pos++;
+            break;
+
+        case KEY_CONFIRM:
+            if (chessgame.board[chessgame.cursor_pos] == EMPTY)
+            {
+                chessgame.board[chessgame.cursor_pos] = chessgame.player_color;
+                chessgame.game_result = CheckGameResult(chessgame.board);
+
+                if (chessgame.game_result != RESULT_ONGOING)
+                {
+                    current_state = STATE_GAME_OVER;
+                }
+                else
+                {
+                    current_state = STATE_AI_THINK;
+                    osDelay(200);
+                    osThreadFlagsSet(Task_AILogicHandle, FLAG_AI_START);
+                }
+            }
+            break;
+
+        default:
+            break;
+        }
     }
 }
 
@@ -184,31 +255,31 @@ void HandleSelectColor(KeyEvent_t key)
 {
     switch (key)
     {
-        case KEY_UP:
-            if (ui_options.color_option > CELL_BLACK)
-                ui_options.color_option--;
-            break;
-            
-        case KEY_DOWN:
-            if (ui_options.color_option < COLOR_BACK)
-                ui_options.color_option++;
-            break;
-            
-        case KEY_CONFIRM:
-            if (ui_options.color_option == COLOR_BACK)
-            {
-                current_state = STATE_MAIN_MENU;
-                ui_options.main_option = MAIN_PLACE;
-            }
-            else
-            {
-                current_state = STATE_PLACE_SELECT;
-                chessgame.cursor_pos = 4;
-            }
-            break;
-            
-        default:
-            break;
+    case KEY_UP:
+        if (ui_options.color_option > CELL_BLACK)
+            ui_options.color_option--;
+        break;
+
+    case KEY_DOWN:
+        if (ui_options.color_option < COLOR_BACK)
+            ui_options.color_option++;
+        break;
+
+    case KEY_CONFIRM:
+        if (ui_options.color_option == COLOR_BACK)
+        {
+            current_state = STATE_MAIN_MENU;
+            ui_options.main_option = MAIN_PLACE;
+        }
+        else
+        {
+            current_state = STATE_PLACE_SELECT;
+            chessgame.cursor_pos = 4;
+        }
+        break;
+
+    default:
+        break;
     }
 }
 
@@ -218,34 +289,37 @@ void HandlePlaceMove(KeyEvent_t key)
 {
     switch (key)
     {
-        case KEY_UP:
-            if (chessgame.cursor_pos >= 3) chessgame.cursor_pos -= 3;
-            break;
-            
-        case KEY_DOWN:
-            if (chessgame.cursor_pos <= 5) chessgame.cursor_pos += 3;
-            break;
-            
-        case KEY_LEFT:
-            if (chessgame.cursor_pos % 3 != 0) chessgame.cursor_pos--;
-            break;
-            
-        case KEY_RIGHT:
-            if (chessgame.cursor_pos % 3 != 2) chessgame.cursor_pos++;
-            break;
-            
-        case KEY_CONFIRM:
-        {
-            CellState_t color = (ui_options.color_option == CELL_BLACK) ? CELL_BLACK : CELL_WHITE;
-            chessgame.board[chessgame.cursor_pos] = color;
-            
-            current_state = STATE_COLOR_SELECT;
-            ui_options.color_option = CELL_BLACK;
-            break;
-        }
-            
-        default:
-            break;
+    case KEY_UP:
+        if (chessgame.cursor_pos >= 3)
+            chessgame.cursor_pos -= 3;
+        break;
+
+    case KEY_DOWN:
+        if (chessgame.cursor_pos <= 5)
+            chessgame.cursor_pos += 3;
+        break;
+
+    case KEY_LEFT:
+        if (chessgame.cursor_pos % 3 != 0)
+            chessgame.cursor_pos--;
+        break;
+
+    case KEY_RIGHT:
+        if (chessgame.cursor_pos % 3 != 2)
+            chessgame.cursor_pos++;
+        break;
+
+    case KEY_CONFIRM: {
+        CellState_t color = (ui_options.color_option == CELL_BLACK) ? CELL_BLACK : CELL_WHITE;
+        chessgame.board[chessgame.cursor_pos] = color;
+
+        current_state = STATE_COLOR_SELECT;
+        ui_options.color_option = CELL_BLACK;
+        break;
+    }
+
+    default:
+        break;
     }
 }
 
@@ -255,19 +329,19 @@ void HandleGameOver(KeyEvent_t key)
 {
     switch (key)
     {
-        case KEY_CONFIRM:
-            BoardInit(chessgame.board);
-            chessgame.cursor_pos = 4;
-            chessgame.ai_color = BLACK;
-            chessgame.player_color = WHITE;
-            chessgame.current_turn = 0;
-            chessgame.game_result = RESULT_ONGOING;
-            
-            current_state = STATE_MAIN_MENU;
-            ui_options.main_option = MAIN_GAME;
-            break;
-            
-        default:
-            break;
+    case KEY_CONFIRM:
+        BoardInit(chessgame.board);
+        chessgame.cursor_pos = 4;
+        chessgame.ai_color = BLACK;
+        chessgame.player_color = WHITE;
+        chessgame.current_turn = 0;
+        chessgame.game_result = RESULT_ONGOING;
+
+        current_state = STATE_MAIN_MENU;
+        ui_options.main_option = MAIN_GAME;
+        break;
+
+    default:
+        break;
     }
 }
