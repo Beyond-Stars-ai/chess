@@ -39,12 +39,12 @@ void EnterGamePlay(void)
     {
         if (chessgame.current_turn == 1) // AI先手
         {
-            SetState(STATE_AI_THINK);
+            SetState(STATE_AI_THINK); //AI真实回合
             osThreadFlagsSet(Task_AILogicHandle, FLAG_AI_START);
         }
         else // 玩家先手
         {
-            SetState(STATE_PLAYER_MOVE);
+            SetState(STATE_PLAYER_MOVE); // 玩家真实回合
         }
     }
 
@@ -186,7 +186,7 @@ void HandlePlayerMove(KeyEvent_t key)
                 }
                 else
                 {
-                    SetState(STATE_AI_THINK);
+                    SetState(STATE_AI_THINK); //AI真实回合
                     osThreadFlagsSet(Task_AILogicHandle, FLAG_AI_START);
                 }
             }
