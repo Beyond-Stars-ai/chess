@@ -36,4 +36,6 @@ void EnterGamePlay(void);
 // 进入颜色选择界面的初始化
 void EnterColorSelect(void);
 
+void SetState(AppState_t new_state);
+
 #endif /* __STATE_HANDLERS_H */

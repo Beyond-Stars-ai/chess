@@ -221,7 +221,7 @@ int main(void)
 
   /* Create the queue(s) */
   /* creation of keyEventQueue */
-  keyEventQueueHandle = osMessageQueueNew (3, sizeof(KeyEvent_t), &keyEventQueue_attributes);
+  keyEventQueueHandle = osMessageQueueNew (1, sizeof(KeyEvent_t), &keyEventQueue_attributes);
 
   /* USER CODE BEGIN RTOS_QUEUES */
     /* add queues, ... */
@@ -499,7 +499,7 @@ void StartState(void *argument)
   /* USER CODE BEGIN 5 */
   KeyEvent_t key_evt;
   uint32_t flags;
-  
+
   for (;;)
   {
     // ===== 处理任务通知（AI完成） =====
@@ -507,9 +507,9 @@ void StartState(void *argument)
     if (flags & FLAG_AI_DONE)
     {
         if (chessgame.game_result != RESULT_ONGOING)
-            current_state = STATE_GAME_OVER;
+            SetState(STATE_GAME_OVER);
         else
-            current_state = STATE_PLAYER_MOVE;
+            SetState(STATE_PLAYER_MOVE);
     }
     
     // ===== 处理按键事件 =====
@@ -564,7 +564,7 @@ void StartState(void *argument)
 /* USER CODE END Header_StartSensorScan */
 void StartSensorScan(void *argument)
 {
-    /* USER CODE BEGIN StartSensorScan */
+  /* USER CODE BEGIN StartSensorScan */
     // uint32_t flags;
     
     for (;;)
@@ -598,7 +598,7 @@ void StartSensorScan(void *argument)
     //         continue;
     //     }
     }
-    /* USER CODE END StartSensorScan */
+  /* USER CODE END StartSensorScan */
 }
 
 /* USER CODE BEGIN Header_StartAILogic */
