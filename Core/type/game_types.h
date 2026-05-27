@@ -74,6 +74,13 @@ typedef enum {
     RESULT_DRAW      = 3
 } GameResult_t;
 
+/* 游戏模式枚举 */
+typedef enum {
+    GAME_MODE_NONE = 0,
+    GAME_MODE_PLAY,    // 实物下棋模式
+    GAME_MODE_TEXT     // 调试模式（不下实物）
+} GameMode_t;
+
 /* 游戏控制块 */
 typedef struct
 {
@@ -82,14 +89,8 @@ typedef struct
     uint8_t ai_color;           // AI颜色
     uint8_t player_color;       // 玩家颜色
     uint8_t current_turn;       // 0=玩家, 1=AI
-    GameResult_t game_result;            // 游戏结果
+    GameResult_t game_result;   // 游戏结果
+    GameMode_t game_mode;       // 游戏模式
 } GameCtrl_t;
-
-/* 游戏模式枚举 */
-typedef enum {
-    GAME_MODE_NONE = 0,
-    GAME_MODE_PLAY,    // 实物下棋模式
-    GAME_MODE_TEXT     // 调试模式（不下实物）
-} GameMode_t;
 
 #endif /* __GAME_TYPES_H */

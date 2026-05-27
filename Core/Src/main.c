@@ -33,7 +33,7 @@
 #include "chess_ai.h"
 #include "sensors.h"
 #include "ui.h"
-#include "game_core.h"
+// #include "game_core.h"
 #include "state.h"
 
 #include "game_types.h" 

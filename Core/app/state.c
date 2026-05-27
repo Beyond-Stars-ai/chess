@@ -1,5 +1,5 @@
 #include "state.h"
-#include "game_core.h"
+// #include "game_core.h"
 #include "ui.h"
 #include "cmsis_os.h"
 #include "chess_ai.h"
@@ -66,8 +66,9 @@ void HandleMainMenu(KeyEvent_t key)
         case KEY_CONFIRM:
             if (ui_options.main_option == MAIN_GAME)
             {
-                GameCore_SetMode(GAME_MODE_PLAY);
+                // GameCore_SetMode(GAME_MODE_PLAY);
                 current_state = STATE_SELECT_FIRST;
+                chessgame.game_mode = GAME_MODE_PLAY;
                 EnterSelectFirst();
             }
             else if (ui_options.main_option == MAIN_PLACE)
@@ -77,8 +78,8 @@ void HandleMainMenu(KeyEvent_t key)
             }
             else if (ui_options.main_option == MAIN_TEXT)
             {
-                GameCore_SetMode(GAME_MODE_TEXT);
                 current_state = STATE_SELECT_FIRST;
+                chessgame.game_mode = GAME_MODE_TEXT;
                 EnterSelectFirst();
             }
             break;
